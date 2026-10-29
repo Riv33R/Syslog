@@ -165,6 +165,12 @@ logger -n 127.0.0.1 -P 514 -d -p auth.info "sshd[24512]: Failed password for inv
 | `GET` | `/api/v1/devices/{ip}/logs` | Архивные логи из изолированной SQLite БД выбранного устройства (параметры: `limit`, `offset`, `severity`, `vendor_type`, `q`) |
 | `GET` | `/api/v1/devices/{ip}/stream`| Server-Sent Events (SSE) поток логов устройства для ботов |
 | `GET` | `/api/v1/stats` | Метрики работы: принятые пакеты (UDP/TCP), дропы, БД |
+| `GET` | `/api/v1/forwarding/endpoints` | Список конечных точек пересылки и счетчики пакетов |
+| `POST`| `/api/v1/forwarding/endpoints` | Создать конечную точку (Syslog UDP, Syslog TCP, Webhook) |
+| `PUT` | `/api/v1/forwarding/endpoints/{id}` | Изменить параметры конечной точки |
+| `DELETE`| `/api/v1/forwarding/endpoints/{id}`| Удалить точку пересылки |
+| `POST`| `/api/v1/forwarding/endpoints/{id}/toggle` | Включить / приостановить пересылку |
+| `POST`| `/api/v1/forwarding/test` | Тестовая отправка пробного пакета на целевой хост |
 | `GET` | `/api/v1/webhooks` | Список правил вебхуков |
 | `POST`| `/api/v1/webhooks` | Создать новое правило форвардинга |
 | `DELETE`| `/api/v1/webhooks/{id}` | Удалить правило |

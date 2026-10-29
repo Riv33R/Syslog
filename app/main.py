@@ -67,6 +67,15 @@ from app.webhooks import (
     send_webhook_payload,
     close_http_client,
 )
+from app.forwarder import (
+    get_all_forwarding_endpoints,
+    create_forwarding_endpoint,
+    update_forwarding_endpoint,
+    delete_forwarding_endpoint,
+    toggle_forwarding_endpoint,
+    test_endpoint_dispatch,
+    flush_forwarding_stats,
+)
 
 # Logging configuration
 logging.basicConfig(
@@ -97,6 +106,19 @@ async def periodic_retention_task():
             break
         except Exception as e:
             logger.error("Error in retention cleanup task: %s", e)
+
+
+async def periodic_stats_flush_task():
+    """Periodically flushes in-memory forwarding counters to SQLite."""
+    while True:
+        try:
+            await asyncio.sleep(10)
+            await flush_forwarding_stats()
+        except asyncio.CancelledError:
+            await flush_forwarding_stats()
+            break
+        except Exception as e:
+            logger.error("Error flushing forwarding stats: %s", e)
 
 
 @asynccontextmanager
@@ -150,9 +172,11 @@ async def lifespan(app: FastAPI):
         except Exception as e:
             logger.warning("Could not bind TCP on %s:%d: %s", SYSLOG_HOST, port, e)
 
-    # 3. Start retention cleanup background worker
+    # 3. Start background worker tasks
     retention_task = asyncio.create_task(periodic_retention_task())
     _background_tasks.append(retention_task)
+    stats_flush_task = asyncio.create_task(periodic_stats_flush_task())
+    _background_tasks.append(stats_flush_task)
 
     logger.info("Syslog Aggregator Engine is fully running on ports: %s", _bound_ports)
 
@@ -200,6 +224,26 @@ class WebhookToggleRequest(BaseModel):
 class WebhookTestRequest(BaseModel):
     target_url: str
     sample_payload: Optional[Dict[str, Any]] = None
+
+class ForwardingEndpointCreateRequest(BaseModel):
+    name: str
+    target_type: str  # 'syslog_udp', 'syslog_tcp', 'http_webhook'
+    host: str
+    port: int = 514
+    filter_source_ip: Optional[str] = None
+    filter_vendor: Optional[str] = None
+    filter_max_severity: Optional[int] = None
+    forward_format: str = "raw"
+    enabled: bool = True
+
+class ForwardingEndpointToggleRequest(BaseModel):
+    enabled: bool
+
+class ForwardingEndpointTestRequest(BaseModel):
+    target_type: str
+    host: str
+    port: int = 514
+    forward_format: str = "raw"
 
 
 # --- Web UI Route ---
@@ -386,6 +430,82 @@ async def trigger_retention_cleanup():
     """Manually triggers retention cleanup."""
     asyncio.create_task(cleanup_retention_worker(RETENTION_DAYS))
     return {"status": "cleanup_started", "retention_days": RETENTION_DAYS}
+
+
+# --- Forwarding Endpoints & Destinations REST API ---
+
+@app.get("/api/v1/forwarding/endpoints")
+async def list_forwarding_endpoints():
+    """Returns list of configured forwarding destinations and live packet stats."""
+    endpoints = await get_all_forwarding_endpoints()
+    return {"endpoints": endpoints}
+
+
+@app.post("/api/v1/forwarding/endpoints")
+async def add_forwarding_endpoint(req: ForwardingEndpointCreateRequest):
+    """Creates a new destination target to forward logs to."""
+    ep_id = await create_forwarding_endpoint(
+        name=req.name,
+        target_type=req.target_type,
+        host=req.host,
+        port=req.port,
+        filter_source_ip=req.filter_source_ip,
+        filter_vendor=req.filter_vendor,
+        filter_max_severity=req.filter_max_severity,
+        forward_format=req.forward_format,
+        enabled=req.enabled
+    )
+    return {"status": "created", "id": ep_id}
+
+
+@app.put("/api/v1/forwarding/endpoints/{endpoint_id}")
+async def edit_forwarding_endpoint(endpoint_id: int, req: ForwardingEndpointCreateRequest):
+    """Updates an existing destination target."""
+    success = await update_forwarding_endpoint(
+        endpoint_id=endpoint_id,
+        name=req.name,
+        target_type=req.target_type,
+        host=req.host,
+        port=req.port,
+        filter_source_ip=req.filter_source_ip,
+        filter_vendor=req.filter_vendor,
+        filter_max_severity=req.filter_max_severity,
+        forward_format=req.forward_format,
+        enabled=req.enabled
+    )
+    if not success:
+        raise HTTPException(status_code=404, detail="Forwarding endpoint not found")
+    return {"status": "updated", "id": endpoint_id}
+
+
+@app.delete("/api/v1/forwarding/endpoints/{endpoint_id}")
+async def remove_forwarding_endpoint(endpoint_id: int):
+    """Deletes a forwarding destination."""
+    success = await delete_forwarding_endpoint(endpoint_id)
+    if not success:
+        raise HTTPException(status_code=404, detail="Forwarding endpoint not found")
+    return {"status": "deleted", "id": endpoint_id}
+
+
+@app.post("/api/v1/forwarding/endpoints/{endpoint_id}/toggle")
+async def toggle_forwarding(endpoint_id: int, req: ForwardingEndpointToggleRequest):
+    """Toggles active/paused state for a forwarding target."""
+    success = await toggle_forwarding_endpoint(endpoint_id, req.enabled)
+    if not success:
+        raise HTTPException(status_code=404, detail="Forwarding endpoint not found")
+    return {"status": "updated", "id": endpoint_id, "enabled": req.enabled}
+
+
+@app.post("/api/v1/forwarding/test")
+async def test_forwarding(req: ForwardingEndpointTestRequest):
+    """Sends a sample probe packet to test destination reachability."""
+    res = await test_endpoint_dispatch(
+        target_type=req.target_type,
+        host=req.host,
+        port=req.port,
+        forward_format=req.forward_format
+    )
+    return res
 
 
 # --- WebSocket Live Stream ---

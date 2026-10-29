@@ -95,6 +95,15 @@
       </div>
 
       <div class="flex items-center gap-2">
+        <button onclick="openForwardingModal()"
+          class="px-3 py-1.5 rounded-lg bg-emerald-950/70 hover:bg-emerald-900/80 border border-emerald-700/70 text-emerald-300 flex items-center gap-1.5 transition font-semibold">
+          <svg class="w-3.5 h-3.5 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"></path>
+          </svg>
+          <span>Пересылка логов</span>
+          <span id="stat-forwarding-count" class="ml-1 px-1.5 py-0.2 rounded-full text-[10px] bg-emerald-900 text-emerald-200 border border-emerald-600">0</span>
+        </button>
+
         <button onclick="openWebhooksModal()"
           class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 flex items-center gap-1.5 transition">
           <svg class="w-3.5 h-3.5 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -211,6 +220,13 @@
               <span>Streaming combined syslog activity across all isolated databases</span>
             </div>
           </div>
+          <button id="device-forward-shortcut-btn" onclick="openForwardingModalForCurrentDevice()" title="Настроить пересылку логов с этого устройства"
+            class="hidden px-2.5 py-1 rounded-lg bg-emerald-950/80 hover:bg-emerald-900 border border-emerald-700/80 text-emerald-300 text-xs font-mono items-center gap-1.5 transition">
+            <svg class="w-3.5 h-3.5 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"></path>
+            </svg>
+            <span>Ретрансляция</span>
+          </button>
         </div>
 
         <!-- Controls: Live Pause, Auto-scroll, Search, Severity -->
@@ -301,6 +317,178 @@
         </div>
       </div>
     </main>
+  </div>
+
+  <!-- Modal: Forwarding Endpoints & Destinations Submenu -->
+  <div id="forwarding-modal" class="fixed inset-0 bg-black/75 backdrop-blur-sm z-50 hidden flex items-center justify-center p-3 sm:p-4">
+    <div class="bg-slate-900 border border-slate-800 rounded-xl max-w-4xl w-full max-h-[92vh] flex flex-col shadow-2xl overflow-hidden font-sans">
+      <!-- Modal Header -->
+      <div class="p-4 border-b border-slate-800 flex justify-between items-center bg-slate-950/80">
+        <div class="flex items-center gap-3">
+          <div class="h-9 w-9 rounded-lg bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400 font-mono">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"></path>
+            </svg>
+          </div>
+          <div>
+            <h2 class="text-sm font-semibold text-slate-100 flex items-center gap-2">
+              Настройка пересылки логов и конечных точек
+              <span class="text-xs px-2 py-0.5 rounded font-mono font-normal bg-emerald-950 text-emerald-400 border border-emerald-800">Syslog UDP / TCP / Webhooks</span>
+            </h2>
+            <div class="text-[11px] text-slate-400">Ретрансляция логов на внешние SIEM (QRadar, Splunk, Graylog), резервные коллекторы и системы мониторинга</div>
+          </div>
+        </div>
+        <button onclick="closeForwardingModal()" class="text-slate-400 hover:text-slate-200 p-1">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+        </button>
+      </div>
+
+      <!-- Submenu Navigation Tabs -->
+      <div class="flex border-b border-slate-800 bg-slate-950/50 px-4 pt-2 gap-4 text-xs font-medium">
+        <button id="tab-btn-endpoints" onclick="switchForwardingTab('endpoints')" class="pb-2 border-b-2 border-emerald-500 text-emerald-400 font-semibold flex items-center gap-1.5 transition">
+          <span>📡 Конечные точки (Destinations)</span>
+          <span id="tab-endpoints-badge" class="px-1.5 py-0.2 rounded-full text-[10px] bg-slate-800 text-slate-300">0</span>
+        </button>
+        <button id="tab-btn-routing" onclick="switchForwardingTab('routing')" class="pb-2 border-b-2 border-transparent text-slate-400 hover:text-slate-200 flex items-center gap-1.5 transition">
+          <span>🖧 Маршрутизация по устройствам (Device Matrix)</span>
+        </button>
+      </div>
+
+      <!-- Tab Content Area -->
+      <div class="p-4 overflow-y-auto space-y-4 flex-1">
+        
+        <!-- Tab 1: Endpoints -->
+        <div id="tab-content-endpoints" class="space-y-4">
+          <!-- Add / Edit Endpoint Form -->
+          <div class="bg-slate-950 p-4 rounded-xl border border-slate-800 space-y-3">
+            <div class="flex justify-between items-center">
+              <h3 id="endpoint-form-title" class="text-xs font-semibold text-slate-200 uppercase tracking-wider flex items-center gap-1.5">
+                <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
+                <span>Добавить конечную точку назначения</span>
+              </h3>
+              <button id="cancel-edit-endpoint-btn" onclick="resetEndpointForm()" class="hidden text-[11px] text-slate-400 hover:text-slate-200 underline">
+                Отменить редактирование
+              </button>
+            </div>
+
+            <input type="hidden" id="fwd-edit-id" value="">
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 text-xs">
+              <!-- Name -->
+              <div>
+                <label class="block text-slate-400 mb-1">Название назначения</label>
+                <input id="fwd-name" type="text" placeholder="e.g. SIEM QRadar, SOC Center, Graylog"
+                  class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-slate-200 font-mono focus:border-emerald-500 focus:outline-none">
+              </div>
+
+              <!-- Protocol -->
+              <div>
+                <label class="block text-slate-400 mb-1">Тип протокола</label>
+                <select id="fwd-type" onchange="onForwardTypeChange()" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-slate-200 font-mono focus:border-emerald-500 focus:outline-none">
+                  <option value="syslog_udp">Syslog UDP (Стандартный)</option>
+                  <option value="syslog_tcp">Syslog TCP (Потоковый)</option>
+                  <option value="http_webhook">HTTP Webhook (POST JSON)</option>
+                </select>
+              </div>
+
+              <!-- Host / IP -->
+              <div>
+                <label id="fwd-host-label" class="block text-slate-400 mb-1">IP-адрес / Хост назначения</label>
+                <input id="fwd-host" type="text" placeholder="10.100.1.50 или siem.corp.local"
+                  class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-slate-200 font-mono focus:border-emerald-500 focus:outline-none">
+              </div>
+
+              <!-- Port -->
+              <div id="fwd-port-wrapper">
+                <label class="block text-slate-400 mb-1">Порт назначения</label>
+                <input id="fwd-port" type="number" value="514"
+                  class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-slate-200 font-mono focus:border-emerald-500 focus:outline-none">
+              </div>
+
+              <!-- Format -->
+              <div>
+                <label class="block text-slate-400 mb-1">Формат пересылки</label>
+                <select id="fwd-format" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-slate-200 font-mono focus:border-emerald-500 focus:outline-none">
+                  <option value="raw">Оригинальный Raw Syslog</option>
+                  <option value="json">Нормализованный JSON</option>
+                </select>
+              </div>
+
+              <!-- Device Filter -->
+              <div>
+                <label class="block text-slate-400 mb-1">Источник (Устройство)</label>
+                <select id="fwd-filter-device" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-slate-200 font-mono focus:border-emerald-500 focus:outline-none">
+                  <option value="">Все устройства (Global)</option>
+                </select>
+              </div>
+
+              <!-- Vendor Filter -->
+              <div>
+                <label class="block text-slate-400 mb-1">Фильтр по вендору</label>
+                <select id="fwd-filter-vendor" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-slate-200 font-mono focus:border-emerald-500 focus:outline-none">
+                  <option value="">Все вендоры</option>
+                  <option value="cisco">Только Cisco</option>
+                  <option value="fortigate">Только FortiGate</option>
+                  <option value="linux">Только Linux</option>
+                  <option value="generic">Только Generic</option>
+                </select>
+              </div>
+
+              <!-- Severity Filter -->
+              <div>
+                <label class="block text-slate-400 mb-1">Минимальная важность (≤)</label>
+                <select id="fwd-filter-sev" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-slate-200 font-mono focus:border-emerald-500 focus:outline-none">
+                  <option value="">Все логи (0-7)</option>
+                  <option value="1">≤ 1 (Emergency, Alert)</option>
+                  <option value="2">≤ 2 (Critical и выше)</option>
+                  <option value="3">≤ 3 (Error и выше)</option>
+                  <option value="4">≤ 4 (Warning и выше)</option>
+                  <option value="5">≤ 5 (Notice и выше)</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- Form Actions -->
+            <div class="flex items-center justify-between pt-2 border-t border-slate-800/80">
+              <button onclick="testCurrentEndpointProbe()" type="button" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 text-xs flex items-center gap-1.5 transition">
+                <svg class="w-3.5 h-3.5 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+                <span>Проверить отправку (Test Probe)</span>
+              </button>
+
+              <button onclick="saveForwardingEndpoint()" type="button" class="px-4 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-xs flex items-center gap-1.5 transition shadow">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                <span id="save-endpoint-btn-text">Сохранить точку</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Active Endpoints List -->
+          <div>
+            <div class="flex justify-between items-center mb-2">
+              <h3 class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Активные точки ретрансляции</h3>
+              <button onclick="loadForwardingEndpoints()" class="text-slate-400 hover:text-slate-200 text-xs flex items-center gap-1">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+                <span>Обновить список</span>
+              </button>
+            </div>
+            <div id="forwarding-endpoints-list" class="space-y-2">
+              <div class="text-xs text-slate-500 text-center py-6">Точки пересылки ещё не настроены.</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tab 2: Routing Matrix -->
+        <div id="tab-content-routing" class="space-y-3 hidden">
+          <div class="text-xs text-slate-400 mb-2">
+            В данной таблице отображены все источники логов, обнаруженные агрегатором, и правила их маршрутизации на внешние серверы.
+          </div>
+          <div id="device-routing-matrix" class="space-y-2">
+            <!-- Dynamically populated -->
+          </div>
+        </div>
+
+      </div>
+    </div>
   </div>
 
   <!-- Modal: Webhook Rules Management -->
@@ -664,7 +852,10 @@
       selectedDeviceIp = ip;
       renderDeviceList();
 
+      const fwdBtn = document.getElementById('device-forward-shortcut-btn');
+
       if (ip === null) {
+        if (fwdBtn) { fwdBtn.classList.add('hidden'); fwdBtn.classList.remove('flex'); }
         document.getElementById('active-vendor-badge').textContent = 'GLOBAL';
         document.getElementById('active-vendor-badge').className = 'px-2.5 py-1 rounded text-xs font-mono uppercase font-bold bg-slate-800 text-slate-300 border border-slate-700';
         document.getElementById('active-device-title').textContent = 'Global Stream (All Sources)';
@@ -675,6 +866,7 @@
         }
         loadGlobalRecentLogs();
       } else {
+        if (fwdBtn) { fwdBtn.classList.remove('hidden'); fwdBtn.classList.add('flex'); }
         const dev = devices.find(d => d.ip === ip);
         const vendor = dev ? dev.vendor_type : 'generic';
         const vColor = VENDOR_COLORS[vendor] || VENDOR_COLORS.generic;
@@ -1009,6 +1201,370 @@
       alert(data.message || data.detail || "Dispatched test payload");
     }
 
+    // --- Forwarding Endpoints & Submenu Management ---
+    let forwardingEndpoints = [];
+
+    function openForwardingModal() {
+      populateDeviceFilterDropdown();
+      loadForwardingEndpoints();
+      document.getElementById('forwarding-modal').classList.remove('hidden');
+    }
+
+    function closeForwardingModal() {
+      document.getElementById('forwarding-modal').classList.add('hidden');
+      resetEndpointForm();
+    }
+
+    function openForwardingModalForCurrentDevice() {
+      openForwardingModal();
+      if (selectedDeviceIp) {
+        document.getElementById('fwd-filter-device').value = selectedDeviceIp;
+        document.getElementById('fwd-name').value = `Ретрансляция ${selectedDeviceIp}`;
+      }
+    }
+
+    function switchForwardingTab(tab) {
+      const btnEp = document.getElementById('tab-btn-endpoints');
+      const btnRt = document.getElementById('tab-btn-routing');
+      const contentEp = document.getElementById('tab-content-endpoints');
+      const contentRt = document.getElementById('tab-content-routing');
+
+      if (tab === 'endpoints') {
+        btnEp.className = "pb-2 border-b-2 border-emerald-500 text-emerald-400 font-semibold flex items-center gap-1.5 transition";
+        btnRt.className = "pb-2 border-b-2 border-transparent text-slate-400 hover:text-slate-200 flex items-center gap-1.5 transition";
+        contentEp.classList.remove('hidden');
+        contentRt.classList.add('hidden');
+      } else {
+        btnRt.className = "pb-2 border-b-2 border-emerald-500 text-emerald-400 font-semibold flex items-center gap-1.5 transition";
+        btnEp.className = "pb-2 border-b-2 border-transparent text-slate-400 hover:text-slate-200 flex items-center gap-1.5 transition";
+        contentEp.classList.add('hidden');
+        contentRt.classList.remove('hidden');
+        renderForwardingRoutingMatrix();
+      }
+    }
+
+    function onForwardTypeChange() {
+      const type = document.getElementById('fwd-type').value;
+      const hostLabel = document.getElementById('fwd-host-label');
+      const hostInput = document.getElementById('fwd-host');
+      const portWrapper = document.getElementById('fwd-port-wrapper');
+
+      if (type === 'http_webhook') {
+        hostLabel.textContent = "URL Назначения (POST)";
+        hostInput.placeholder = "https://siem.corp.local/api/syslog";
+        portWrapper.classList.add('opacity-40');
+      } else {
+        hostLabel.textContent = "IP-адрес / Хост назначения";
+        hostInput.placeholder = "10.100.1.50 или siem.corp.local";
+        portWrapper.classList.remove('opacity-40');
+      }
+    }
+
+    function populateDeviceFilterDropdown() {
+      const select = document.getElementById('fwd-filter-device');
+      const currentVal = select.value;
+      let html = `<option value="">Все устройства (Global)</option>`;
+      devices.forEach(d => {
+        html += `<option value="${d.ip}">${d.ip} (${d.hostname || d.vendor_type})</option>`;
+      });
+      select.innerHTML = html;
+      if (currentVal) select.value = currentVal;
+    }
+
+    async function loadForwardingEndpoints() {
+      try {
+        const res = await fetch('/api/v1/forwarding/endpoints');
+        const data = await res.json();
+        forwardingEndpoints = data.endpoints || [];
+
+        // Update badges
+        const count = forwardingEndpoints.filter(e => e.enabled).length;
+        document.getElementById('stat-forwarding-count').textContent = count;
+        document.getElementById('tab-endpoints-badge').textContent = forwardingEndpoints.length;
+
+        renderForwardingEndpointsList();
+      } catch (e) {
+        console.error("Failed loading forwarding endpoints", e);
+      }
+    }
+
+    function renderForwardingEndpointsList() {
+      const list = document.getElementById('forwarding-endpoints-list');
+      if (forwardingEndpoints.length === 0) {
+        list.innerHTML = `<div class="text-xs text-slate-500 text-center py-6">Точки пересылки ещё не настроены. Создайте первую точку выше.</div>`;
+        return;
+      }
+
+      list.innerHTML = forwardingEndpoints.map(ep => {
+        const isUdp = ep.target_type === 'syslog_udp';
+        const isTcp = ep.target_type === 'syslog_tcp';
+        const protoBadge = isUdp
+          ? '<span class="px-1.5 py-0.5 rounded text-[10px] font-mono font-bold bg-blue-950 text-blue-300 border border-blue-800">UDP</span>'
+          : isTcp
+          ? '<span class="px-1.5 py-0.5 rounded text-[10px] font-mono font-bold bg-cyan-950 text-cyan-300 border border-cyan-800">TCP</span>'
+          : '<span class="px-1.5 py-0.5 rounded text-[10px] font-mono font-bold bg-purple-950 text-purple-300 border border-purple-800">WEBHOOK</span>';
+
+        const statusBadge = ep.enabled
+          ? '<span class="w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_6px_#22c55e]"></span><span class="text-emerald-400 font-semibold text-[11px]">Активна</span>'
+          : '<span class="w-2 h-2 rounded-full bg-slate-600"></span><span class="text-slate-500 text-[11px]">Пауза</span>';
+
+        const filterDeviceBadge = ep.filter_source_ip
+          ? `<span class="px-1.5 py-0.2 rounded font-mono text-[10px] bg-slate-800 text-slate-300 border border-slate-700">Source: ${ep.filter_source_ip}</span>`
+          : `<span class="px-1.5 py-0.2 rounded font-mono text-[10px] bg-emerald-950/70 text-emerald-300 border border-emerald-800">Source: ALL</span>`;
+
+        const filterVendorBadge = ep.filter_vendor
+          ? `<span class="px-1.5 py-0.2 rounded font-mono text-[10px] bg-amber-950 text-amber-300 border border-amber-800">${ep.filter_vendor.toUpperCase()}</span>`
+          : '';
+
+        const filterSevBadge = (ep.filter_max_severity !== null && ep.filter_max_severity !== "" && ep.filter_max_severity !== undefined)
+          ? `<span class="px-1.5 py-0.2 rounded font-mono text-[10px] bg-rose-950 text-rose-300 border border-rose-800">Sev ≤ ${ep.filter_max_severity}</span>`
+          : '';
+
+        const formatBadge = ep.forward_format === 'json'
+          ? '<span class="px-1.5 py-0.2 rounded font-mono text-[10px] bg-slate-800 text-emerald-400">JSON</span>'
+          : '<span class="px-1.5 py-0.2 rounded font-mono text-[10px] bg-slate-800 text-slate-400">RAW</span>';
+
+        return `
+          <div class="p-3 bg-slate-950 rounded-xl border border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs hover:border-slate-700 transition">
+            <div class="space-y-1">
+              <div class="flex items-center gap-2 flex-wrap">
+                <span class="font-bold text-slate-200 text-sm">${ep.name}</span>
+                ${protoBadge}
+                ${formatBadge}
+                <div class="flex items-center gap-1.5 ml-2">${statusBadge}</div>
+              </div>
+              <div class="flex items-center gap-2 text-slate-400 font-mono text-[11px] flex-wrap">
+                <span class="text-slate-200 font-semibold">${ep.host}:${ep.port}</span>
+                <span class="text-slate-600">•</span>
+                ${filterDeviceBadge}
+                ${filterVendorBadge}
+                ${filterSevBadge}
+              </div>
+              <div class="text-[10px] text-slate-500 font-mono flex items-center gap-3">
+                <span>Переслано: <strong class="text-emerald-400">${Number(ep.forwarded_count || 0).toLocaleString()}</strong> пакетов</span>
+                ${ep.last_forwarded ? `<span>Посл: ${ep.last_forwarded.replace('T', ' ').substring(11, 19)}</span>` : ''}
+              </div>
+            </div>
+
+            <div class="flex items-center gap-1.5 shrink-0">
+              <button onclick="testExistingEndpoint(${ep.id}, '${ep.target_type}', '${ep.host}', ${ep.port}, '${ep.forward_format}')" title="Отправить тестовый пакет"
+                class="px-2.5 py-1 rounded bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 text-[11px] transition">
+                Тест
+              </button>
+              <button onclick="toggleForwardingEndpoint(${ep.id}, ${ep.enabled ? 1 : 0})" title="Включить / приостановить"
+                class="px-2.5 py-1 rounded ${ep.enabled ? 'bg-amber-950/70 hover:bg-amber-900 border border-amber-800 text-amber-300' : 'bg-emerald-950/70 hover:bg-emerald-900 border border-emerald-800 text-emerald-300'} text-[11px] transition">
+                ${ep.enabled ? 'Пауза' : 'Включить'}
+              </button>
+              <button onclick='editForwardingEndpoint(${JSON.stringify(ep)})' title="Редактировать"
+                class="px-2 py-1 rounded bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 text-[11px] transition">
+                ✎
+              </button>
+              <button onclick="deleteForwardingEndpoint(${ep.id})" title="Удалить"
+                class="px-2 py-1 rounded bg-rose-950/70 hover:bg-rose-900 border border-rose-800 text-rose-300 text-[11px] transition">
+                ✕
+              </button>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    async function saveForwardingEndpoint() {
+      const editId = document.getElementById('fwd-edit-id').value;
+      const name = document.getElementById('fwd-name').value.trim();
+      const type = document.getElementById('fwd-type').value;
+      const host = document.getElementById('fwd-host').value.trim();
+      const port = parseInt(document.getElementById('fwd-port').value) || 514;
+      const format = document.getElementById('fwd-format').value;
+      const filterDevice = document.getElementById('fwd-filter-device').value;
+      const filterVendor = document.getElementById('fwd-filter-vendor').value;
+      const filterSev = document.getElementById('fwd-filter-sev').value;
+
+      if (!name || !host) {
+        alert("Пожалуйста, заполните название и хост/URL назначения.");
+        return;
+      }
+
+      const payload = {
+        name: name,
+        target_type: type,
+        host: host,
+        port: port,
+        forward_format: format,
+        filter_source_ip: filterDevice || null,
+        filter_vendor: filterVendor || null,
+        filter_max_severity: filterSev !== "" ? parseInt(filterSev) : null,
+        enabled: true
+      };
+
+      try {
+        if (editId) {
+          await fetch(`/api/v1/forwarding/endpoints/${editId}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+          });
+        } else {
+          await fetch('/api/v1/forwarding/endpoints', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+          });
+        }
+
+        resetEndpointForm();
+        loadForwardingEndpoints();
+      } catch (e) {
+        alert("Ошибка при сохранении: " + e);
+      }
+    }
+
+    function editForwardingEndpoint(ep) {
+      document.getElementById('fwd-edit-id').value = ep.id;
+      document.getElementById('fwd-name').value = ep.name;
+      document.getElementById('fwd-type').value = ep.target_type;
+      document.getElementById('fwd-host').value = ep.host;
+      document.getElementById('fwd-port').value = ep.port || 514;
+      document.getElementById('fwd-format').value = ep.forward_format || 'raw';
+      document.getElementById('fwd-filter-device').value = ep.filter_source_ip || '';
+      document.getElementById('fwd-filter-vendor').value = ep.filter_vendor || '';
+      document.getElementById('fwd-filter-sev').value = (ep.filter_max_severity !== null && ep.filter_max_severity !== undefined) ? ep.filter_max_severity : '';
+
+      onForwardTypeChange();
+      document.getElementById('endpoint-form-title').innerHTML = `
+        <span class="w-2 h-2 rounded-full bg-amber-400"></span>
+        <span>Редактировать точку: ${ep.name}</span>
+      `;
+      document.getElementById('save-endpoint-btn-text').textContent = "Обновить точку";
+      document.getElementById('cancel-edit-endpoint-btn').classList.remove('hidden');
+      document.getElementById('fwd-name').scrollIntoView({ behavior: 'smooth' });
+    }
+
+    function resetEndpointForm() {
+      document.getElementById('fwd-edit-id').value = '';
+      document.getElementById('fwd-name').value = '';
+      document.getElementById('fwd-host').value = '';
+      document.getElementById('fwd-port').value = '514';
+      document.getElementById('fwd-type').value = 'syslog_udp';
+      document.getElementById('fwd-format').value = 'raw';
+      document.getElementById('fwd-filter-device').value = '';
+      document.getElementById('fwd-filter-vendor').value = '';
+      document.getElementById('fwd-filter-sev').value = '';
+      onForwardTypeChange();
+
+      document.getElementById('endpoint-form-title').innerHTML = `
+        <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
+        <span>Добавить конечную точку назначения</span>
+      `;
+      document.getElementById('save-endpoint-btn-text').textContent = "Сохранить точку";
+      document.getElementById('cancel-edit-endpoint-btn').classList.add('hidden');
+    }
+
+    async function deleteForwardingEndpoint(id) {
+      if (confirm("Удалить эту точку пересылки?")) {
+        await fetch(`/api/v1/forwarding/endpoints/${id}`, { method: 'DELETE' });
+        loadForwardingEndpoints();
+      }
+    }
+
+    async function toggleForwardingEndpoint(id, currentEnabled) {
+      await fetch(`/api/v1/forwarding/endpoints/${id}/toggle`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ enabled: !currentEnabled })
+      });
+      loadForwardingEndpoints();
+    }
+
+    async function testCurrentEndpointProbe() {
+      const type = document.getElementById('fwd-type').value;
+      const host = document.getElementById('fwd-host').value.trim();
+      const port = parseInt(document.getElementById('fwd-port').value) || 514;
+      const format = document.getElementById('fwd-format').value;
+
+      if (!host) {
+        alert("Укажите хост назначения для тестирования.");
+        return;
+      }
+
+      await testExistingEndpoint(0, type, host, port, format);
+    }
+
+    async function testExistingEndpoint(id, type, host, port, format) {
+      try {
+        const res = await fetch('/api/v1/forwarding/test', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            target_type: type,
+            host: host,
+            port: port,
+            forward_format: format
+          })
+        });
+        const data = await res.json();
+        alert(data.message || (data.success ? "Тестовый пакет успешно отправлен" : "Ошибка отправки"));
+      } catch (e) {
+        alert("Ошибка при тестировании: " + e);
+      }
+    }
+
+    function renderForwardingRoutingMatrix() {
+      const matrix = document.getElementById('device-routing-matrix');
+      if (devices.length === 0) {
+        matrix.innerHTML = `<div class="text-xs text-slate-500 text-center py-6">Нет зарегистрированных устройств для построения матрицы.</div>`;
+        return;
+      }
+
+      matrix.innerHTML = devices.map(d => {
+        // Find which endpoints match this device
+        const matchingEps = forwardingEndpoints.filter(ep => {
+          if (!ep.enabled) return false;
+          const matchIp = !ep.filter_source_ip || ep.filter_source_ip === d.ip;
+          const matchVendor = !ep.filter_vendor || ep.filter_vendor.toLowerCase() === 'all' || ep.filter_vendor.toLowerCase() === d.vendor_type.toLowerCase();
+          return matchIp && matchVendor;
+        });
+
+        const vColor = VENDOR_COLORS[d.vendor_type] || VENDOR_COLORS.generic;
+
+        const endpointsPills = matchingEps.length > 0
+          ? matchingEps.map(e => `
+              <span class="px-2 py-0.5 rounded text-[11px] font-mono bg-emerald-950 text-emerald-300 border border-emerald-800 flex items-center gap-1">
+                <span>&rarr;</span>
+                <strong>${e.name}</strong>
+                <span class="text-emerald-500 text-[10px]">(${e.host}:${e.port})</span>
+              </span>
+            `).join('')
+          : '<span class="text-slate-500 text-xs italic">Ретрансляция не настроена</span>';
+
+        return `
+          <div class="p-3 bg-slate-950 rounded-xl border border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
+            <div class="space-y-1">
+              <div class="flex items-center gap-2">
+                <span class="font-mono font-bold text-slate-200 text-sm">${d.ip}</span>
+                <span class="text-[10px] px-1.5 py-0.2 rounded font-mono border ${vColor}">${d.vendor_type}</span>
+                <span class="text-slate-400 font-mono text-[11px]">${d.hostname || 'Без имени'}</span>
+              </div>
+              <div class="flex items-center gap-1.5 flex-wrap pt-1">
+                ${endpointsPills}
+              </div>
+            </div>
+            <button onclick="forwardQuickAddForDevice('${d.ip}')" class="px-2.5 py-1 rounded bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 text-xs flex items-center gap-1 transition shrink-0">
+              <span>+ Назначить точку</span>
+            </button>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function forwardQuickAddForDevice(ip) {
+      switchForwardingTab('endpoints');
+      resetEndpointForm();
+      document.getElementById('fwd-filter-device').value = ip;
+      document.getElementById('fwd-name').value = `Ретрансляция ${ip}`;
+      document.getElementById('fwd-host').focus();
+    }
+
     // --- API Reference Modal ---
     function openApiModal() {
       document.getElementById('api-modal').classList.remove('hidden');
@@ -1022,6 +1578,7 @@
       if (e.key === 'Escape') {
         closeDetailModal();
         closeWebhooksModal();
+        closeForwardingModal();
         closeApiModal();
       }
     });
@@ -1030,8 +1587,10 @@
     window.addEventListener('DOMContentLoaded', () => {
       initWebSocket();
       fetchDevices();
+      loadForwardingEndpoints();
       setInterval(fetchDevices, 10000);
       setInterval(updateTopStats, 5000);
+      setInterval(loadForwardingEndpoints, 10000);
     });
   </script>
 </body>

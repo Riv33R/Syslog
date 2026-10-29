@@ -71,6 +71,22 @@ CREATE TABLE IF NOT EXISTS webhooks (
     enabled INTEGER DEFAULT 1,
     created_at TEXT NOT NULL
 );
+
+CREATE TABLE IF NOT EXISTS forwarding_endpoints (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    name TEXT NOT NULL,
+    target_type TEXT NOT NULL,
+    host TEXT NOT NULL,
+    port INTEGER DEFAULT 514,
+    filter_source_ip TEXT,
+    filter_vendor TEXT,
+    filter_max_severity INTEGER,
+    forward_format TEXT DEFAULT 'raw',
+    enabled INTEGER DEFAULT 1,
+    forwarded_count INTEGER DEFAULT 0,
+    last_forwarded TEXT,
+    created_at TEXT NOT NULL
+);
 """
 
 # Track initialized DB paths in memory to avoid repetitive CREATE TABLE overhead

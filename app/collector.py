@@ -13,6 +13,7 @@ from app.config import (
 from app.parsers import parse_syslog_message
 from app.storage import insert_logs_batch
 from app.webhooks import evaluate_and_dispatch_webhooks
+from app.forwarder import evaluate_and_forward_logs
 
 logger = logging.getLogger("syslog.collector")
 
@@ -203,6 +204,9 @@ async def batch_processing_worker():
 
                 # 3. Fire-and-forget webhook rules evaluation
                 await evaluate_and_dispatch_webhooks(parsed_batch)
+
+                # 4. Multi-target forwarding (Syslog UDP, Syslog TCP, Webhooks)
+                await evaluate_and_forward_logs(parsed_batch)
 
         except asyncio.CancelledError:
             logger.info("Batch processing worker cancelled.")

@@ -8,6 +8,13 @@ import asyncio
 from app.parsers import parse_syslog_message
 from app.storage import init_registry_db, insert_logs_batch, query_device_logs, get_all_devices
 from app.webhooks import matches_rule
+from app.forwarder import (
+    create_forwarding_endpoint,
+    get_all_forwarding_endpoints,
+    matches_endpoint,
+    delete_forwarding_endpoint,
+    test_endpoint_dispatch,
+)
 
 async def main():
     print("[1] Testing Parsers...")
@@ -67,6 +74,33 @@ async def main():
     assert matches_rule(cisco, rule_sev) is True  # Cisco sev is 3 <= 3
     assert matches_rule(fg, rule_sev) is False    # FG sev is 4 > 3
     print("  [OK] Webhook rule matching passed")
+
+    # Forwarding Endpoints & Routing
+    print("[4] Testing Forwarding Endpoints & Device Routing...")
+    ep_id = await create_forwarding_endpoint(
+        name="Test SIEM UDP",
+        target_type="syslog_udp",
+        host="127.0.0.1",
+        port=1514,
+        filter_source_ip="10.0.0.1",
+        filter_vendor="cisco",
+        filter_max_severity=3,
+        forward_format="raw"
+    )
+    assert ep_id > 0
+    endpoints = await get_all_forwarding_endpoints()
+    assert any(e["id"] == ep_id for e in endpoints)
+
+    ep_dict = next(e for e in endpoints if e["id"] == ep_id)
+    assert matches_endpoint(cisco, ep_dict) is True
+    assert matches_endpoint(fg, ep_dict) is False  # FG source is 10.0.0.2 != 10.0.0.1
+
+    # Test probe dispatch
+    probe_res = await test_endpoint_dispatch("syslog_udp", "127.0.0.1", 1514, "raw")
+    assert probe_res["success"] is True
+
+    await delete_forwarding_endpoint(ep_id)
+    print("  [OK] Forwarding endpoints & routing tests passed")
 
     print("\nALL SYSTEM TESTS PASSED SUCCESSFULLY!")
 
