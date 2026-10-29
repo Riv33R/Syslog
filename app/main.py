@@ -46,6 +46,7 @@ from app.storage import (
     get_all_devices,
     get_device_info,
     query_device_logs,
+    query_all_devices_logs,
     cleanup_retention_worker,
 )
 from app.collector import (
@@ -288,23 +289,71 @@ async def get_device_logs(
     limit: int = Query(default=100, ge=1, le=1000),
     offset: int = Query(default=0, ge=0),
     severity: Optional[int] = Query(default=None, ge=0, le=7),
+    severity_max: Optional[int] = Query(default=None, ge=0, le=7),
+    facility: Optional[int] = Query(default=None, ge=0, le=23),
     vendor_type: Optional[str] = Query(default=None),
-    q: Optional[str] = Query(default=None)
+    q: Optional[str] = Query(default=None),
+    start_time: Optional[str] = Query(default=None),
+    end_time: Optional[str] = Query(default=None),
+    tag: Optional[str] = Query(default=None),
 ):
     """
     Queries archival logs from the chosen device's isolated SQLite database.
-    Supports filtering by severity, vendor_type, and full-text keyword search.
+    Supports filtering by severity (exact or max threshold), facility, vendor_type,
+    time range, tag/mnemonic, and full-text keyword search.
     """
     logs, total = await query_device_logs(
         ip=ip,
         limit=limit,
         offset=offset,
         severity=severity,
+        severity_max=severity_max,
+        facility=facility,
         vendor_type=vendor_type,
-        q=q
+        q=q,
+        start_time=start_time,
+        end_time=end_time,
+        tag=tag,
     )
     return {
         "device": ip,
+        "total": total,
+        "limit": limit,
+        "offset": offset,
+        "logs": logs
+    }
+
+
+@app.get("/api/v1/logs")
+async def get_all_logs(
+    limit: int = Query(default=100, ge=1, le=1000),
+    offset: int = Query(default=0, ge=0),
+    severity: Optional[int] = Query(default=None, ge=0, le=7),
+    severity_max: Optional[int] = Query(default=None, ge=0, le=7),
+    facility: Optional[int] = Query(default=None, ge=0, le=23),
+    vendor_type: Optional[str] = Query(default=None),
+    q: Optional[str] = Query(default=None),
+    start_time: Optional[str] = Query(default=None),
+    end_time: Optional[str] = Query(default=None),
+    tag: Optional[str] = Query(default=None),
+):
+    """
+    Queries archival logs across all device databases with unified filtering and pagination.
+    """
+    logs, total = await query_all_devices_logs(
+        limit=limit,
+        offset=offset,
+        severity=severity,
+        severity_max=severity_max,
+        facility=facility,
+        vendor_type=vendor_type,
+        q=q,
+        start_time=start_time,
+        end_time=end_time,
+        tag=tag,
+    )
+    return {
+        "device": "all",
         "total": total,
         "limit": limit,
         "offset": offset,

@@ -41,6 +41,7 @@ CREATE TABLE IF NOT EXISTS logs (
 
 CREATE INDEX IF NOT EXISTS idx_logs_timestamp ON logs(timestamp DESC);
 CREATE INDEX IF NOT EXISTS idx_logs_severity ON logs(severity);
+CREATE INDEX IF NOT EXISTS idx_logs_facility ON logs(facility);
 CREATE INDEX IF NOT EXISTS idx_logs_vendor ON logs(vendor_type);
 CREATE INDEX IF NOT EXISTS idx_logs_tag ON logs(tag);
 """
@@ -252,11 +253,17 @@ async def query_device_logs(
     limit: int = 100,
     offset: int = 0,
     severity: Optional[int] = None,
+    severity_max: Optional[int] = None,
+    facility: Optional[int] = None,
     vendor_type: Optional[str] = None,
-    q: Optional[str] = None
+    q: Optional[str] = None,
+    start_time: Optional[str] = None,
+    end_time: Optional[str] = None,
+    tag: Optional[str] = None,
 ) -> Tuple[List[Dict[str, Any]], int]:
     """
     Queries logs from an isolated device database with filtering and pagination.
+    Supports severity exact / threshold, facility, vendor, full-text keyword, time range, and tag/mnemonic.
     Returns (logs_list, total_matching_count).
     """
     db_path = get_device_db_path(ip)
@@ -269,15 +276,35 @@ async def query_device_logs(
     if severity is not None:
         where_clauses.append("severity = ?")
         params.append(severity)
+    elif severity_max is not None:
+        where_clauses.append("severity <= ?")
+        params.append(severity_max)
+
+    if facility is not None:
+        where_clauses.append("facility = ?")
+        params.append(facility)
 
     if vendor_type and vendor_type.lower() != "all":
         where_clauses.append("vendor_type = ?")
         params.append(vendor_type.lower())
 
+    if tag and tag.strip():
+        tag_pattern = f"%{tag.strip()}%"
+        where_clauses.append("(tag LIKE ? OR mnemonic LIKE ?)")
+        params.extend([tag_pattern, tag_pattern])
+
+    if start_time and start_time.strip():
+        where_clauses.append("timestamp >= ?")
+        params.append(start_time.strip())
+
+    if end_time and end_time.strip():
+        where_clauses.append("timestamp <= ?")
+        params.append(end_time.strip())
+
     if q and q.strip():
         search_pattern = f"%{q.strip()}%"
-        where_clauses.append("(raw LIKE ? OR parsed_json LIKE ? OR mnemonic LIKE ? OR tag LIKE ?)")
-        params.extend([search_pattern, search_pattern, search_pattern, search_pattern])
+        where_clauses.append("(raw LIKE ? OR parsed_json LIKE ? OR mnemonic LIKE ? OR tag LIKE ? OR source_ip LIKE ?)")
+        params.extend([search_pattern, search_pattern, search_pattern, search_pattern, search_pattern])
 
     where_sql = " AND ".join(where_clauses)
 
@@ -315,6 +342,60 @@ async def query_device_logs(
         logger.error("Query failed for device %s: %s", ip, e)
 
     return logs, total
+
+async def query_all_devices_logs(
+    limit: int = 100,
+    offset: int = 0,
+    severity: Optional[int] = None,
+    severity_max: Optional[int] = None,
+    facility: Optional[int] = None,
+    vendor_type: Optional[str] = None,
+    q: Optional[str] = None,
+    start_time: Optional[str] = None,
+    end_time: Optional[str] = None,
+    tag: Optional[str] = None,
+) -> Tuple[List[Dict[str, Any]], int]:
+    """
+    Queries logs across all per-device isolated databases.
+    Aggregates results matching filters, sorted by timestamp descending.
+    """
+    if not DEVICES_DIR.exists():
+        return [], 0
+
+    db_files = list(DEVICES_DIR.glob("*.db"))
+    if not db_files:
+        return [], 0
+
+    aggregated_logs: List[Dict[str, Any]] = []
+    total_count = 0
+
+    # Query from each device DB with a limit high enough to ensure accurate top-N sorting
+    per_db_fetch_limit = offset + limit
+
+    for db_file in db_files:
+        ip = db_file.stem
+        dev_logs, dev_total = await query_device_logs(
+            ip=ip,
+            limit=per_db_fetch_limit,
+            offset=0,
+            severity=severity,
+            severity_max=severity_max,
+            facility=facility,
+            vendor_type=vendor_type,
+            q=q,
+            start_time=start_time,
+            end_time=end_time,
+            tag=tag,
+        )
+        total_count += dev_total
+        aggregated_logs.extend(dev_logs)
+
+    # Sort aggregated logs by timestamp DESC, id DESC
+    aggregated_logs.sort(key=lambda x: (x.get("timestamp", ""), x.get("id", 0)), reverse=True)
+
+    # Apply pagination slice
+    paginated = aggregated_logs[offset : offset + limit]
+    return paginated, total_count
 
 async def cleanup_retention_worker(retention_days: int = RETENTION_DAYS):
     """

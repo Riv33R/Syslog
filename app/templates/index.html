@@ -73,7 +73,7 @@
       </div>
       <div>
         <h1 class="text-sm font-semibold tracking-wide text-slate-100 flex items-center gap-2">
-          Syslog Aggregator
+          <span data-i18n="app_title">Syslog Aggregator</span>
           <span
             class="text-xs px-2 py-0.5 rounded font-mono font-normal bg-slate-800 text-slate-400 border border-slate-700">UDP/TCP
             514 &amp; 1514</span>
@@ -81,50 +81,60 @@
       </div>
     </div>
 
-    <!-- Cluster / Server Status Pill -->
-    <div class="flex items-center gap-4 text-xs font-mono">
+    <!-- Cluster / Server Status Pill & Controls -->
+    <div class="flex items-center gap-3 text-xs font-mono">
       <div class="hidden md:flex items-center gap-2 bg-slate-800/80 px-3 py-1.5 rounded-lg border border-slate-700/60">
-        <span class="text-slate-400">Devices:</span>
+        <span class="text-slate-400" data-i18n="stat_devices">Devices:</span>
         <span id="stat-devices-count" class="font-bold text-emerald-400">0</span>
         <span class="text-slate-600">|</span>
-        <span class="text-slate-400">Online:</span>
+        <span class="text-slate-400" data-i18n="stat_online">Online:</span>
         <span id="stat-devices-online" class="font-bold text-cyan-400">0</span>
         <span class="text-slate-600">|</span>
-        <span class="text-slate-400">Total Logs:</span>
+        <span class="text-slate-400" data-i18n="stat_total_logs">Total Logs:</span>
         <span id="stat-total-logs" class="font-bold text-amber-400">0</span>
       </div>
 
       <div class="flex items-center gap-2">
+        <!-- Forwarding Submenu Button -->
         <button onclick="openForwardingModal()"
           class="px-3 py-1.5 rounded-lg bg-emerald-950/70 hover:bg-emerald-900/80 border border-emerald-700/70 text-emerald-300 flex items-center gap-1.5 transition font-semibold">
           <svg class="w-3.5 h-3.5 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"></path>
           </svg>
-          <span>Пересылка логов</span>
+          <span data-i18n="nav_forwarding">Log Forwarding</span>
           <span id="stat-forwarding-count" class="ml-1 px-1.5 py-0.2 rounded-full text-[10px] bg-emerald-900 text-emerald-200 border border-emerald-600">0</span>
         </button>
 
+        <!-- Webhooks Button -->
         <button onclick="openWebhooksModal()"
           class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 flex items-center gap-1.5 transition">
           <svg class="w-3.5 h-3.5 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
           </svg>
-          Webhooks
+          <span data-i18n="nav_webhooks">Webhooks</span>
         </button>
 
+        <!-- API Reference Button -->
         <button onclick="openApiModal()"
           class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 flex items-center gap-1.5 transition">
           <svg class="w-3.5 h-3.5 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
               d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"></path>
           </svg>
-          API
+          <span data-i18n="nav_api">API</span>
         </button>
 
+        <!-- Language Switcher Pill -->
+        <div class="flex items-center bg-slate-900 border border-slate-700 rounded-lg p-0.5 text-[11px] font-mono">
+          <button id="lang-btn-en" onclick="setLanguage('en')" class="px-2 py-0.5 rounded font-bold transition bg-emerald-600 text-white shadow">EN</button>
+          <button id="lang-btn-ru" onclick="setLanguage('ru')" class="px-2 py-0.5 rounded font-bold transition text-slate-400 hover:text-slate-200">RU</button>
+        </div>
+
+        <!-- WS Status -->
         <div id="ws-indicator"
           class="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-mono bg-emerald-950/80 text-emerald-400 border border-emerald-800/80">
           <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-          <span>WS LIVE</span>
+          <span data-i18n="ws_live">WS LIVE</span>
         </div>
       </div>
     </div>
@@ -139,6 +149,7 @@
       <div class="p-3 border-b border-slate-800 space-y-2">
         <div class="relative">
           <input id="device-search-input" type="text" placeholder="Search IP or hostname..."
+            data-i18n-placeholder="search_device_ph"
             oninput="renderDeviceList()"
             class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-1.5 pl-8 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-emerald-500/60 font-mono transition" />
           <svg class="w-3.5 h-3.5 text-slate-500 absolute left-2.5 top-2.5" fill="none" stroke="currentColor"
@@ -152,7 +163,7 @@
         <div class="flex items-center gap-1 overflow-x-auto pb-1 text-[11px] font-medium text-slate-400">
           <button onclick="setVendorFilter('all')"
             class="vendor-pill px-2.5 py-1 rounded bg-slate-800 text-slate-200 border border-slate-700"
-            data-vendor="all">All</button>
+            data-vendor="all" data-i18n="filter_all">All</button>
           <button onclick="setVendorFilter('cisco')"
             class="vendor-pill px-2.5 py-1 rounded hover:bg-slate-800 border border-transparent"
             data-vendor="cisco">Cisco</button>
@@ -171,8 +182,8 @@
       <!-- Device List Header -->
       <div
         class="px-3 py-2 text-[11px] font-semibold tracking-wider text-slate-500 uppercase flex justify-between items-center bg-slate-950/40">
-        <span>Registered Sources</span>
-        <button onclick="fetchDevices()" title="Refresh devices" class="hover:text-slate-300">
+        <span data-i18n="registered_sources">Registered Sources</span>
+        <button onclick="fetchDevices()" title="Refresh devices" data-i18n-title="refresh_sources_tip" class="hover:text-slate-300">
           <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
               d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15">
@@ -184,7 +195,7 @@
       <!-- Devices Scroll Container -->
       <div id="device-list-container" class="flex-1 overflow-y-auto divide-y divide-slate-800/60 p-1.5 space-y-1">
         <!-- Devices injected dynamically -->
-        <div class="text-xs text-slate-500 text-center py-8">Loading devices...</div>
+        <div class="text-xs text-slate-500 text-center py-8" data-i18n="loading_devices">Loading devices...</div>
       </div>
 
       <!-- Left Sidebar Footer: Storage Info -->
@@ -192,92 +203,66 @@
         class="p-2.5 border-t border-slate-800 bg-slate-950/80 text-[11px] text-slate-400 flex justify-between items-center">
         <span class="flex items-center gap-1.5">
           <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-          WAL Isolated Mode
+          <span data-i18n="wal_isolated">WAL Isolated Mode</span>
         </span>
-        <span class="text-slate-500">Retention: {{ retention_days }}d</span>
+        <span class="text-slate-500" data-i18n="retention_info">Retention: {{ retention_days }}d</span>
       </div>
     </aside>
 
     <!-- Center Stage: Console & Logs -->
     <main class="flex-1 flex flex-col bg-slate-950 overflow-hidden">
 
-      <!-- Active Device Toolbar -->
+      <!-- Active Device Toolbar (Header Row) -->
       <div
-        class="p-3 border-b border-slate-800 bg-slate-900/40 flex flex-wrap items-center justify-between gap-3 shrink-0">
+        class="p-2.5 px-3 border-b border-slate-800 bg-slate-900/60 flex flex-wrap items-center justify-between gap-2 shrink-0">
         <!-- Selected Device Details -->
         <div class="flex items-center gap-3">
           <div id="active-vendor-badge"
-            class="px-2.5 py-1 rounded text-xs font-mono uppercase font-bold bg-slate-800 text-slate-300 border border-slate-700">
+            class="px-2 py-0.5 rounded text-xs font-mono uppercase font-bold bg-slate-800 text-slate-300 border border-slate-700"
+            data-i18n="all_devices_badge">
             ALL DEVICES
           </div>
           <div>
             <div class="flex items-center gap-2">
-              <span id="active-device-title" class="text-sm font-semibold font-mono text-slate-200">Global Stream (All
-                Sources)</span>
+              <span id="active-device-title" class="text-sm font-semibold font-mono text-slate-200" data-i18n="global_stream_title">Global Stream (All Sources)</span>
               <span id="active-device-db" class="text-[11px] text-slate-500 font-mono hidden md:inline"></span>
             </div>
-            <div id="active-device-subtitle" class="text-xs text-slate-400 flex items-center gap-2">
-              <span>Streaming combined syslog activity across all isolated databases</span>
+            <div id="active-device-subtitle" class="text-[11px] text-slate-400 flex items-center gap-2">
+              <span data-i18n="global_stream_sub">Streaming combined syslog activity across all isolated databases</span>
             </div>
           </div>
-          <button id="device-forward-shortcut-btn" onclick="openForwardingModalForCurrentDevice()" title="Настроить пересылку логов с этого устройства"
-            class="hidden px-2.5 py-1 rounded-lg bg-emerald-950/80 hover:bg-emerald-900 border border-emerald-700/80 text-emerald-300 text-xs font-mono items-center gap-1.5 transition">
+          <button id="device-forward-shortcut-btn" onclick="openForwardingModalForCurrentDevice()" title="Configure forwarding for this device"
+            class="hidden px-2 py-0.5 rounded-lg bg-emerald-950/80 hover:bg-emerald-900 border border-emerald-700/80 text-emerald-300 text-xs font-mono items-center gap-1.5 transition">
             <svg class="w-3.5 h-3.5 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"></path>
             </svg>
-            <span>Ретрансляция</span>
+            <span data-i18n="device_forward_btn">Forwarding</span>
           </button>
         </div>
 
-        <!-- Controls: Live Pause, Auto-scroll, Search, Severity -->
+        <!-- Stream Action Controls -->
         <div class="flex items-center gap-2">
-          <!-- Text Search inside Logs -->
-          <div class="relative w-48 sm:w-64">
-            <input id="log-search-input" type="text" placeholder="Filter logs / text..."
-              onkeydown="if(event.key==='Enter') loadCurrentLogs()"
-              class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 pl-7 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-emerald-500 font-mono transition" />
-            <svg class="w-3.5 h-3.5 text-slate-500 absolute left-2 top-2" fill="none" stroke="currentColor"
-              viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
-            </svg>
-          </div>
-
-          <!-- Severity Filter Dropdown -->
-          <select id="severity-select" onchange="loadCurrentLogs()"
-            class="bg-slate-900 border border-slate-700 text-slate-300 text-xs rounded-lg px-2 py-1.5 focus:outline-none focus:border-emerald-500 font-mono">
-            <option value="">All Severity</option>
-            <option value="0">0 - Emergency</option>
-            <option value="1">1 - Alert</option>
-            <option value="2">2 - Critical</option>
-            <option value="3">3 - Error</option>
-            <option value="4">4 - Warning</option>
-            <option value="5">5 - Notice</option>
-            <option value="6">6 - Info</option>
-            <option value="7">7 - Debug</option>
-          </select>
-
           <!-- Auto-scroll checkbox -->
           <label
-            class="hidden lg:flex items-center gap-1.5 text-xs text-slate-400 cursor-pointer bg-slate-900/80 px-2.5 py-1.5 rounded-lg border border-slate-800">
+            class="hidden md:flex items-center gap-1.5 text-xs text-slate-400 cursor-pointer bg-slate-900/90 px-2.5 py-1 rounded-lg border border-slate-800">
             <input type="checkbox" id="autoscroll-toggle" checked
               class="rounded text-emerald-500 focus:ring-0 bg-slate-800 border-slate-700">
-            <span>Auto-scroll</span>
+            <span data-i18n="autoscroll">Auto-scroll</span>
           </label>
 
           <!-- Live Pause / Play button -->
           <button id="stream-toggle-btn" onclick="toggleStream()"
-            class="px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 text-xs flex items-center gap-1.5 transition">
+            class="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 text-xs flex items-center gap-1.5 transition">
             <svg id="stream-btn-icon" class="w-3.5 h-3.5 text-amber-400" fill="currentColor" viewBox="0 0 20 20">
               <path fill-rule="evenodd"
                 d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zM7 8a1 1 0 012 0v4a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v4a1 1 0 102 0V8a1 1 0 00-1-1z"
                 clip-rule="evenodd"></path>
             </svg>
-            <span id="stream-btn-text">Pause</span>
+            <span id="stream-btn-text" data-i18n="pause">Pause</span>
           </button>
 
           <!-- Clear Console -->
-          <button onclick="clearConsole()" title="Clear view"
+          <button onclick="clearConsole()" title="Clear view" data-i18n-title="clear_console"
             class="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-400 hover:text-slate-200 transition">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -287,7 +272,7 @@
           </button>
 
           <!-- Export Logs Button -->
-          <button onclick="exportCurrentLogs()" title="Export JSON"
+          <button onclick="exportCurrentLogs()" title="Export JSON" data-i18n-title="export_json"
             class="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-400 hover:text-slate-200 transition">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -295,6 +280,147 @@
             </svg>
           </button>
         </div>
+      </div>
+
+      <!-- Essential Filters Toolbar (Row 2: Search, Severity, Facility, Vendor, Time, Limit, Actions) -->
+      <div class="p-2 px-3 border-b border-slate-800 bg-slate-900/40 flex flex-wrap items-center gap-2 shrink-0 text-xs">
+        <!-- Search Input with Clear Button -->
+        <div class="relative flex-1 min-w-[180px] sm:min-w-[240px]">
+          <input id="log-search-input" type="text" placeholder="Search message, tag, raw, IP..."
+            data-i18n-placeholder="search_logs_ph"
+            onkeydown="if(event.key==='Enter') loadCurrentLogs()"
+            class="w-full bg-slate-950 border border-slate-700/80 rounded-lg px-2.5 py-1.5 pl-7 pr-7 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-emerald-500 font-mono transition" />
+          <svg class="w-3.5 h-3.5 text-slate-500 absolute left-2 top-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+          </svg>
+          <button id="clear-search-btn" onclick="clearSearchInput()" class="hidden absolute right-2 top-1.5 text-slate-500 hover:text-slate-300">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+            </svg>
+          </button>
+        </div>
+
+        <!-- Severity Filter -->
+        <select id="severity-select" onchange="loadCurrentLogs()"
+          class="bg-slate-950 border border-slate-700/80 text-slate-300 text-xs rounded-lg px-2 py-1.5 focus:outline-none focus:border-emerald-500 font-mono">
+          <option value="" data-i18n="sev_all">All Severity</option>
+          <option value="lte_3" data-i18n="sev_lte3">≤ 3 - All Errors (0-3)</option>
+          <option value="lte_4" data-i18n="sev_lte4">≤ 4 - Warnings &amp; Errors</option>
+          <option value="0" data-i18n="sev_0">0 - Emergency</option>
+          <option value="1" data-i18n="sev_1">1 - Alert</option>
+          <option value="2" data-i18n="sev_2">2 - Critical</option>
+          <option value="3" data-i18n="sev_3">3 - Error</option>
+          <option value="4" data-i18n="sev_4">4 - Warning</option>
+          <option value="5" data-i18n="sev_5">5 - Notice</option>
+          <option value="6" data-i18n="sev_6">6 - Info</option>
+          <option value="7" data-i18n="sev_7">7 - Debug</option>
+        </select>
+
+        <!-- Facility Filter -->
+        <select id="facility-select" onchange="loadCurrentLogs()"
+          class="bg-slate-950 border border-slate-700/80 text-slate-300 text-xs rounded-lg px-2 py-1.5 focus:outline-none focus:border-emerald-500 font-mono">
+          <option value="" data-i18n="fac_all">All Facilities</option>
+          <option value="0" data-i18n="fac_0">0 - kern (Kernel)</option>
+          <option value="1" data-i18n="fac_1">1 - user (User)</option>
+          <option value="3" data-i18n="fac_3">3 - daemon (Daemons)</option>
+          <option value="4" data-i18n="fac_4">4 - auth (Security)</option>
+          <option value="5" data-i18n="fac_5">5 - syslog (Syslog)</option>
+          <option value="10" data-i18n="fac_10">10 - authpriv (Priv Auth)</option>
+          <option value="16" data-i18n="fac_16">16 - local0 (Network)</option>
+          <option value="17" data-i18n="fac_17">17 - local1</option>
+          <option value="18" data-i18n="fac_18">18 - local2</option>
+          <option value="19" data-i18n="fac_19">19 - local3</option>
+          <option value="20" data-i18n="fac_20">20 - local4</option>
+          <option value="21" data-i18n="fac_21">21 - local5</option>
+          <option value="22" data-i18n="fac_22">22 - local6</option>
+          <option value="23" data-i18n="fac_23">23 - local7 (Network)</option>
+        </select>
+
+        <!-- Vendor Filter -->
+        <select id="console-vendor-select" onchange="loadCurrentLogs()"
+          class="bg-slate-950 border border-slate-700/80 text-slate-300 text-xs rounded-lg px-2 py-1.5 focus:outline-none focus:border-emerald-500 font-mono">
+          <option value="all" data-i18n="vendor_all">All Vendors</option>
+          <option value="cisco">Cisco</option>
+          <option value="fortigate">FortiGate</option>
+          <option value="linux">Linux</option>
+          <option value="generic">Generic</option>
+        </select>
+
+        <!-- Time Range Filter -->
+        <select id="time-range-select" onchange="handleTimeRangeChange()"
+          class="bg-slate-950 border border-slate-700/80 text-slate-300 text-xs rounded-lg px-2 py-1.5 focus:outline-none focus:border-emerald-500 font-mono">
+          <option value="all" data-i18n="time_all">Live / All Time</option>
+          <option value="15m" data-i18n="time_15m">Last 15 minutes</option>
+          <option value="1h" data-i18n="time_1h">Last 1 hour</option>
+          <option value="6h" data-i18n="time_6h">Last 6 hours</option>
+          <option value="24h" data-i18n="time_24h">Last 24 hours</option>
+          <option value="7d" data-i18n="time_7d">Last 7 days</option>
+          <option value="custom" data-i18n="time_custom">Custom Range...</option>
+        </select>
+
+        <!-- Custom Date Range Inputs (collapsible) -->
+        <div id="custom-time-container" class="hidden items-center gap-1 bg-slate-950 px-2 py-1 rounded-lg border border-slate-700">
+          <span class="text-[11px] text-slate-500" data-i18n="time_from_lbl">From:</span>
+          <input type="datetime-local" id="time-from" class="bg-transparent text-slate-200 text-xs focus:outline-none font-mono">
+          <span class="text-[11px] text-slate-500" data-i18n="time_to_lbl">To:</span>
+          <input type="datetime-local" id="time-to" class="bg-transparent text-slate-200 text-xs focus:outline-none font-mono">
+        </div>
+
+        <!-- Limit Selector -->
+        <select id="limit-select" onchange="loadCurrentLogs()"
+          class="bg-slate-950 border border-slate-700/80 text-slate-300 text-xs rounded-lg px-2 py-1.5 focus:outline-none focus:border-emerald-500 font-mono">
+          <option value="50">50</option>
+          <option value="100" selected>100</option>
+          <option value="250">250</option>
+          <option value="500">500</option>
+          <option value="1000">1000</option>
+        </select>
+
+        <!-- Apply Button -->
+        <button onclick="loadCurrentLogs()"
+          class="px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-xs flex items-center gap-1 transition shadow">
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+          </svg>
+          <span data-i18n="filter_apply">Apply</span>
+        </button>
+
+        <!-- Reset Button -->
+        <button onclick="resetFilters()" title="Reset all filters"
+          class="px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 hover:text-slate-100 text-xs flex items-center gap-1 transition">
+          <svg class="w-3.5 h-3.5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+          </svg>
+          <span data-i18n="filter_reset">Reset</span>
+        </button>
+      </div>
+
+      <!-- Quick Presets Pills (Row 3) -->
+      <div class="px-3 py-1.5 border-b border-slate-800/60 bg-slate-950/60 flex items-center gap-1.5 overflow-x-auto text-[11px] shrink-0 font-medium">
+        <span class="text-slate-500 font-mono text-[11px] shrink-0 mr-1 flex items-center gap-1">
+          <svg class="w-3 h-3 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+          </svg>
+          <span data-i18n="quick_presets_label">Presets:</span>
+        </span>
+        <button onclick="applyQuickPreset('all')" id="preset-chip-all"
+          class="preset-chip px-2 py-0.5 rounded font-mono bg-emerald-950/80 text-emerald-300 border border-emerald-700/80 hover:bg-emerald-900 transition"
+          data-i18n="quick_all">All</button>
+        <button onclick="applyQuickPreset('errors')" id="preset-chip-errors"
+          class="preset-chip px-2 py-0.5 rounded font-mono bg-slate-900 text-slate-400 border border-slate-800 hover:border-slate-700 hover:text-slate-200 transition"
+          data-i18n="quick_errors">⚠️ Errors (≤3)</button>
+        <button onclick="applyQuickPreset('drops')" id="preset-chip-drops"
+          class="preset-chip px-2 py-0.5 rounded font-mono bg-slate-900 text-slate-400 border border-slate-800 hover:border-slate-700 hover:text-slate-200 transition"
+          data-i18n="quick_drops">⛔ Drops &amp; Deny</button>
+        <button onclick="applyQuickPreset('ports')" id="preset-chip-ports"
+          class="preset-chip px-2 py-0.5 rounded font-mono bg-slate-900 text-slate-400 border border-slate-800 hover:border-slate-700 hover:text-slate-200 transition"
+          data-i18n="quick_ports">🔌 Port / Link Status</button>
+        <button onclick="applyQuickPreset('auth')" id="preset-chip-auth"
+          class="preset-chip px-2 py-0.5 rounded font-mono bg-slate-900 text-slate-400 border border-slate-800 hover:border-slate-700 hover:text-slate-200 transition"
+          data-i18n="quick_auth">🔒 Auth &amp; Security</button>
+        <button onclick="applyQuickPreset('routing')" id="preset-chip-routing"
+          class="preset-chip px-2 py-0.5 rounded font-mono bg-slate-900 text-slate-400 border border-slate-800 hover:border-slate-700 hover:text-slate-200 transition"
+          data-i18n="quick_routing">🌐 Routing (BGP/OSPF)</button>
       </div>
 
       <!-- Logs Stream Viewport -->
@@ -308,12 +434,12 @@
       <div
         class="h-8 border-t border-slate-800 bg-slate-900 px-4 flex items-center justify-between text-xs text-slate-400 shrink-0 font-mono">
         <div class="flex items-center gap-3">
-          <span>Displaying <span id="displayed-count" class="text-slate-200 font-bold">0</span> logs</span>
+          <span><span data-i18n="displaying">Displaying</span> <span id="displayed-count" class="text-slate-200 font-bold">0</span> <span data-i18n="logs_label">logs</span></span>
           <span class="text-slate-600">•</span>
-          <span id="logs-query-status" class="text-slate-500">Live streaming active</span>
+          <span id="logs-query-status" class="text-slate-500" data-i18n="live_streaming_active">Live streaming active</span>
         </div>
         <div class="flex items-center gap-2">
-          <span class="text-slate-500">Click any row to inspect parsed JSON & raw syslog</span>
+          <span class="text-slate-500" data-i18n="inspect_tip">Click any row to inspect parsed JSON & raw syslog</span>
         </div>
       </div>
     </main>
@@ -332,10 +458,10 @@
           </div>
           <div>
             <h2 class="text-sm font-semibold text-slate-100 flex items-center gap-2">
-              Настройка пересылки логов и конечных точек
-              <span class="text-xs px-2 py-0.5 rounded font-mono font-normal bg-emerald-950 text-emerald-400 border border-emerald-800">Syslog UDP / TCP / Webhooks</span>
+              <span data-i18n="fwd_modal_title">Log Forwarding & Target Destinations</span>
+              <span class="text-xs px-2 py-0.5 rounded font-mono font-normal bg-emerald-950 text-emerald-400 border border-emerald-800" data-i18n="fwd_modal_badge">Syslog UDP / TCP / Webhooks</span>
             </h2>
-            <div class="text-[11px] text-slate-400">Ретрансляция логов на внешние SIEM (QRadar, Splunk, Graylog), резервные коллекторы и системы мониторинга</div>
+            <div class="text-[11px] text-slate-400" data-i18n="fwd_modal_sub">Relay incoming logs to external SIEMs (QRadar, Splunk, Graylog), secondary collectors, and webhooks</div>
           </div>
         </div>
         <button onclick="closeForwardingModal()" class="text-slate-400 hover:text-slate-200 p-1">
@@ -346,11 +472,11 @@
       <!-- Submenu Navigation Tabs -->
       <div class="flex border-b border-slate-800 bg-slate-950/50 px-4 pt-2 gap-4 text-xs font-medium">
         <button id="tab-btn-endpoints" onclick="switchForwardingTab('endpoints')" class="pb-2 border-b-2 border-emerald-500 text-emerald-400 font-semibold flex items-center gap-1.5 transition">
-          <span>📡 Конечные точки (Destinations)</span>
+          <span data-i18n="tab_destinations">📡 Destinations</span>
           <span id="tab-endpoints-badge" class="px-1.5 py-0.2 rounded-full text-[10px] bg-slate-800 text-slate-300">0</span>
         </button>
         <button id="tab-btn-routing" onclick="switchForwardingTab('routing')" class="pb-2 border-b-2 border-transparent text-slate-400 hover:text-slate-200 flex items-center gap-1.5 transition">
-          <span>🖧 Маршрутизация по устройствам (Device Matrix)</span>
+          <span data-i18n="tab_routing">🖧 Device Routing Matrix</span>
         </button>
       </div>
 
@@ -364,10 +490,10 @@
             <div class="flex justify-between items-center">
               <h3 id="endpoint-form-title" class="text-xs font-semibold text-slate-200 uppercase tracking-wider flex items-center gap-1.5">
                 <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
-                <span>Добавить конечную точку назначения</span>
+                <span data-i18n="fwd_form_add_title">Add Forwarding Destination</span>
               </h3>
-              <button id="cancel-edit-endpoint-btn" onclick="resetEndpointForm()" class="hidden text-[11px] text-slate-400 hover:text-slate-200 underline">
-                Отменить редактирование
+              <button id="cancel-edit-endpoint-btn" onclick="resetEndpointForm()" class="hidden text-[11px] text-slate-400 hover:text-slate-200 underline" data-i18n="cancel_edit">
+                Cancel editing
               </button>
             </div>
 
@@ -376,74 +502,76 @@
             <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 text-xs">
               <!-- Name -->
               <div>
-                <label class="block text-slate-400 mb-1">Название назначения</label>
+                <label class="block text-slate-400 mb-1" data-i18n="fwd_name_label">Destination Name</label>
                 <input id="fwd-name" type="text" placeholder="e.g. SIEM QRadar, SOC Center, Graylog"
+                  data-i18n-placeholder="fwd_name_ph"
                   class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-slate-200 font-mono focus:border-emerald-500 focus:outline-none">
               </div>
 
               <!-- Protocol -->
               <div>
-                <label class="block text-slate-400 mb-1">Тип протокола</label>
+                <label class="block text-slate-400 mb-1" data-i18n="fwd_proto_label">Protocol Type</label>
                 <select id="fwd-type" onchange="onForwardTypeChange()" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-slate-200 font-mono focus:border-emerald-500 focus:outline-none">
-                  <option value="syslog_udp">Syslog UDP (Стандартный)</option>
-                  <option value="syslog_tcp">Syslog TCP (Потоковый)</option>
-                  <option value="http_webhook">HTTP Webhook (POST JSON)</option>
+                  <option value="syslog_udp" data-i18n="proto_udp">Syslog UDP (Standard)</option>
+                  <option value="syslog_tcp" data-i18n="proto_tcp">Syslog TCP (Stream)</option>
+                  <option value="http_webhook" data-i18n="proto_http">HTTP Webhook (POST JSON)</option>
                 </select>
               </div>
 
               <!-- Host / IP -->
               <div>
-                <label id="fwd-host-label" class="block text-slate-400 mb-1">IP-адрес / Хост назначения</label>
-                <input id="fwd-host" type="text" placeholder="10.100.1.50 или siem.corp.local"
+                <label id="fwd-host-label" class="block text-slate-400 mb-1" data-i18n="fwd_host_label_syslog">Destination IP / Host</label>
+                <input id="fwd-host" type="text" placeholder="10.100.1.50 or siem.corp.local"
+                  data-i18n-placeholder="fwd_host_ph_syslog"
                   class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-slate-200 font-mono focus:border-emerald-500 focus:outline-none">
               </div>
 
               <!-- Port -->
               <div id="fwd-port-wrapper">
-                <label class="block text-slate-400 mb-1">Порт назначения</label>
+                <label class="block text-slate-400 mb-1" data-i18n="fwd_port_label">Destination Port</label>
                 <input id="fwd-port" type="number" value="514"
                   class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-slate-200 font-mono focus:border-emerald-500 focus:outline-none">
               </div>
 
               <!-- Format -->
               <div>
-                <label class="block text-slate-400 mb-1">Формат пересылки</label>
+                <label class="block text-slate-400 mb-1" data-i18n="fwd_format_label">Forwarding Format</label>
                 <select id="fwd-format" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-slate-200 font-mono focus:border-emerald-500 focus:outline-none">
-                  <option value="raw">Оригинальный Raw Syslog</option>
-                  <option value="json">Нормализованный JSON</option>
+                  <option value="raw" data-i18n="fmt_raw">Original Raw Syslog</option>
+                  <option value="json" data-i18n="fmt_json">Normalized JSON</option>
                 </select>
               </div>
 
               <!-- Device Filter -->
               <div>
-                <label class="block text-slate-400 mb-1">Источник (Устройство)</label>
+                <label class="block text-slate-400 mb-1" data-i18n="fwd_source_label">Source Device</label>
                 <select id="fwd-filter-device" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-slate-200 font-mono focus:border-emerald-500 focus:outline-none">
-                  <option value="">Все устройства (Global)</option>
+                  <option value="" data-i18n="fwd_source_all">All Devices (Global)</option>
                 </select>
               </div>
 
               <!-- Vendor Filter -->
               <div>
-                <label class="block text-slate-400 mb-1">Фильтр по вендору</label>
+                <label class="block text-slate-400 mb-1" data-i18n="fwd_vendor_label">Vendor Filter</label>
                 <select id="fwd-filter-vendor" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-slate-200 font-mono focus:border-emerald-500 focus:outline-none">
-                  <option value="">Все вендоры</option>
-                  <option value="cisco">Только Cisco</option>
-                  <option value="fortigate">Только FortiGate</option>
-                  <option value="linux">Только Linux</option>
-                  <option value="generic">Только Generic</option>
+                  <option value="" data-i18n="vendor_all">All Vendors</option>
+                  <option value="cisco" data-i18n="vendor_cisco">Cisco Only</option>
+                  <option value="fortigate" data-i18n="vendor_fortigate">FortiGate Only</option>
+                  <option value="linux" data-i18n="vendor_linux">Linux Only</option>
+                  <option value="generic" data-i18n="vendor_generic">Generic Only</option>
                 </select>
               </div>
 
               <!-- Severity Filter -->
               <div>
-                <label class="block text-slate-400 mb-1">Минимальная важность (≤)</label>
+                <label class="block text-slate-400 mb-1" data-i18n="fwd_sev_label">Minimum Severity (≤)</label>
                 <select id="fwd-filter-sev" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-slate-200 font-mono focus:border-emerald-500 focus:outline-none">
-                  <option value="">Все логи (0-7)</option>
-                  <option value="1">≤ 1 (Emergency, Alert)</option>
-                  <option value="2">≤ 2 (Critical и выше)</option>
-                  <option value="3">≤ 3 (Error и выше)</option>
-                  <option value="4">≤ 4 (Warning и выше)</option>
-                  <option value="5">≤ 5 (Notice и выше)</option>
+                  <option value="" data-i18n="sev_filter_all">All Logs (0-7)</option>
+                  <option value="1" data-i18n="sev_filter_1">≤ 1 (Emergency, Alert)</option>
+                  <option value="2" data-i18n="sev_filter_2">≤ 2 (Critical & above)</option>
+                  <option value="3" data-i18n="sev_filter_3">≤ 3 (Error & above)</option>
+                  <option value="4" data-i18n="sev_filter_4">≤ 4 (Warning & above)</option>
+                  <option value="5" data-i18n="sev_filter_5">≤ 5 (Notice & above)</option>
                 </select>
               </div>
             </div>
@@ -452,12 +580,12 @@
             <div class="flex items-center justify-between pt-2 border-t border-slate-800/80">
               <button onclick="testCurrentEndpointProbe()" type="button" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 text-xs flex items-center gap-1.5 transition">
                 <svg class="w-3.5 h-3.5 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
-                <span>Проверить отправку (Test Probe)</span>
+                <span data-i18n="btn_test_probe">Test Probe</span>
               </button>
 
               <button onclick="saveForwardingEndpoint()" type="button" class="px-4 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-xs flex items-center gap-1.5 transition shadow">
                 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
-                <span id="save-endpoint-btn-text">Сохранить точку</span>
+                <span id="save-endpoint-btn-text" data-i18n="btn_save_dest">Save Destination</span>
               </button>
             </div>
           </div>
@@ -465,22 +593,22 @@
           <!-- Active Endpoints List -->
           <div>
             <div class="flex justify-between items-center mb-2">
-              <h3 class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Активные точки ретрансляции</h3>
+              <h3 class="text-xs font-semibold text-slate-400 uppercase tracking-wider" data-i18n="fwd_active_title">Active Destinations</h3>
               <button onclick="loadForwardingEndpoints()" class="text-slate-400 hover:text-slate-200 text-xs flex items-center gap-1">
                 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
-                <span>Обновить список</span>
+                <span data-i18n="btn_refresh">Refresh list</span>
               </button>
             </div>
             <div id="forwarding-endpoints-list" class="space-y-2">
-              <div class="text-xs text-slate-500 text-center py-6">Точки пересылки ещё не настроены.</div>
+              <div class="text-xs text-slate-500 text-center py-6" data-i18n="fwd_empty">No forwarding destinations configured yet. Add one above.</div>
             </div>
           </div>
         </div>
 
         <!-- Tab 2: Routing Matrix -->
         <div id="tab-content-routing" class="space-y-3 hidden">
-          <div class="text-xs text-slate-400 mb-2">
-            В данной таблице отображены все источники логов, обнаруженные агрегатором, и правила их маршрутизации на внешние серверы.
+          <div class="text-xs text-slate-400 mb-2" data-i18n="routing_desc">
+            This matrix displays all log sources discovered by the aggregator and their current forwarding rules to external targets.
           </div>
           <div id="device-routing-matrix" class="space-y-2">
             <!-- Dynamically populated -->
@@ -502,7 +630,7 @@
             class="h-7 w-7 rounded-lg bg-purple-500/10 border border-purple-500/30 flex items-center justify-center text-purple-400 font-mono">
             ⚡
           </div>
-          <h2 class="text-sm font-semibold text-slate-100">Webhook Rules & Forwarding</h2>
+          <h2 class="text-sm font-semibold text-slate-100" data-i18n="wh_modal_title">Webhook Rules & Forwarding</h2>
         </div>
         <button onclick="closeWebhooksModal()" class="text-slate-400 hover:text-slate-200">
           <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -514,23 +642,24 @@
       <div class="p-4 overflow-y-auto space-y-4 flex-1">
         <!-- New Rule Form -->
         <div class="bg-slate-950 p-3.5 rounded-lg border border-slate-800 space-y-3">
-          <h3 class="text-xs font-semibold text-slate-300 uppercase tracking-wider">Create Forwarding Rule</h3>
+          <h3 class="text-xs font-semibold text-slate-300 uppercase tracking-wider" data-i18n="wh_form_title">Create Forwarding Rule</h3>
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
             <div>
-              <label class="block text-slate-400 mb-1">Rule Name</label>
+              <label class="block text-slate-400 mb-1" data-i18n="wh_name_label">Rule Name</label>
               <input id="wh-name" type="text" placeholder="e.g. Cisco Critical Alerts"
+                data-i18n-placeholder="wh_name_ph"
                 class="w-full bg-slate-900 border border-slate-700 rounded px-2.5 py-1.5 text-slate-200 font-mono">
             </div>
             <div>
-              <label class="block text-slate-400 mb-1">Target URL (POST)</label>
+              <label class="block text-slate-400 mb-1" data-i18n="wh_url_label">Target URL (POST)</label>
               <input id="wh-url" type="url" placeholder="https://api.mycorp.com/syslog-alert"
                 class="w-full bg-slate-900 border border-slate-700 rounded px-2.5 py-1.5 text-slate-200 font-mono">
             </div>
             <div>
-              <label class="block text-slate-400 mb-1">Vendor Match</label>
+              <label class="block text-slate-400 mb-1" data-i18n="wh_vendor_label">Vendor Match</label>
               <select id="wh-vendor"
                 class="w-full bg-slate-900 border border-slate-700 rounded px-2.5 py-1.5 text-slate-200 font-mono">
-                <option value="">Any Vendor</option>
+                <option value="" data-i18n="vendor_all">Any Vendor</option>
                 <option value="cisco">Cisco</option>
                 <option value="fortigate">FortiGate</option>
                 <option value="linux">Linux</option>
@@ -538,10 +667,10 @@
               </select>
             </div>
             <div>
-              <label class="block text-slate-400 mb-1">Max Severity (≤)</label>
+              <label class="block text-slate-400 mb-1" data-i18n="wh_sev_label">Max Severity (≤)</label>
               <select id="wh-severity"
                 class="w-full bg-slate-900 border border-slate-700 rounded px-2.5 py-1.5 text-slate-200 font-mono">
-                <option value="">Any Severity</option>
+                <option value="" data-i18n="sev_filter_all">Any Severity</option>
                 <option value="1">≤ 1 (Emergency, Alert)</option>
                 <option value="2">≤ 2 (Emergency, Alert, Critical)</option>
                 <option value="3">≤ 3 (Emergency, Alert, Crit, Error)</option>
@@ -549,19 +678,19 @@
               </select>
             </div>
             <div>
-              <label class="block text-slate-400 mb-1">FortiGate Action Match</label>
+              <label class="block text-slate-400 mb-1" data-i18n="wh_action_label">FortiGate Action Match</label>
               <input id="wh-action" type="text" placeholder="e.g. deny or block"
                 class="w-full bg-slate-900 border border-slate-700 rounded px-2.5 py-1.5 text-slate-200 font-mono">
             </div>
             <div>
-              <label class="block text-slate-400 mb-1">Regex Filter (Optional)</label>
+              <label class="block text-slate-400 mb-1" data-i18n="wh_regex_label">Regex Filter (Optional)</label>
               <input id="wh-regex" type="text" placeholder="e.g. OSPF|BGP|LINK"
                 class="w-full bg-slate-900 border border-slate-700 rounded px-2.5 py-1.5 text-slate-200 font-mono">
             </div>
           </div>
           <div class="flex justify-end gap-2 pt-2">
             <button onclick="addWebhookRule()"
-              class="px-3 py-1.5 rounded bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-medium transition">
+              class="px-3 py-1.5 rounded bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-medium transition" data-i18n="wh_btn_save">
               Save Rule
             </button>
           </div>
@@ -569,10 +698,10 @@
 
         <!-- Rules List -->
         <div>
-          <h3 class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Active Rules</h3>
+          <h3 class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2" data-i18n="wh_active_title">Active Rules</h3>
           <div id="webhooks-list" class="space-y-2">
             <!-- Rules dynamically loaded -->
-            <div class="text-xs text-slate-500 text-center py-4">No webhook rules configured yet.</div>
+            <div class="text-xs text-slate-500 text-center py-4" data-i18n="wh_empty">No webhook rules configured yet.</div>
           </div>
         </div>
       </div>
@@ -585,7 +714,7 @@
     <div
       class="bg-slate-900 border border-slate-800 rounded-xl max-w-2xl w-full max-h-[90vh] flex flex-col shadow-2xl overflow-hidden">
       <div class="p-4 border-b border-slate-800 flex justify-between items-center bg-slate-950/60">
-        <h2 class="text-sm font-semibold text-slate-100 flex items-center gap-2">
+        <h2 class="text-sm font-semibold text-slate-100 flex items-center gap-2" data-i18n="api_modal_title">
           <span>📡</span> Integration & Ingestion Quick Reference
         </h2>
         <button onclick="closeApiModal()" class="text-slate-400 hover:text-slate-200">
@@ -596,29 +725,27 @@
       </div>
       <div class="p-4 overflow-y-auto space-y-4 text-xs font-mono text-slate-300">
         <div>
-          <div class="font-bold text-emerald-400 mb-1">1. Send Syslog over UDP (Port 514):</div>
+          <div class="font-bold text-emerald-400 mb-1" data-i18n="api_step1">1. Send Syslog over UDP (Port 514):</div>
           <pre
             class="bg-slate-950 p-3 rounded border border-slate-800 text-slate-300 overflow-x-auto">echo "&lt;189&gt;%LINK-3-UPDOWN: Interface GigabitEthernet0/1, changed state to down" | nc -u -w1 127.0.0.1 514</pre>
         </div>
 
         <div>
-          <div class="font-bold text-amber-400 mb-1">2. Send Syslog over TCP (Port 514):</div>
+          <div class="font-bold text-amber-400 mb-1" data-i18n="api_step2">2. Send Syslog over TCP (Port 514):</div>
           <pre
             class="bg-slate-950 p-3 rounded border border-slate-800 text-slate-300 overflow-x-auto">echo 'date=2026-10-29 time=11:00:00 devname="FW-01" type="traffic" action="deny" srcip=10.0.0.5 dstip=8.8.8.8 msg="Denied"' | nc -w1 127.0.0.1 514</pre>
         </div>
 
         <div>
-          <div class="font-bold text-blue-400 mb-1">3. REST API - Query Device Logs:</div>
+          <div class="font-bold text-blue-400 mb-1" data-i18n="api_step3">3. REST API - Query Device Logs:</div>
           <pre
-          class="bg-slate-950 p-3 rounded border border-slate-800 text-slate-300 overflow-x-auto">curl -s
-          "http://127.0.0.1:8321/api/v1/devices/10.0.0.1/logs?limit=50&severity=3&q=Gigabit"</pre>
+            class="bg-slate-950 p-3 rounded border border-slate-800 text-slate-300 overflow-x-auto">curl -s "http://127.0.0.1:8321/api/v1/devices/10.0.0.1/logs?limit=50&severity=3&q=Gigabit"</pre>
         </div>
 
         <div>
-          <div class="font-bold text-purple-400 mb-1">4. Server-Sent Events (SSE) Stream:</div>
+          <div class="font-bold text-purple-400 mb-1" data-i18n="api_step4">4. Server-Sent Events (SSE) Stream:</div>
           <pre
-          class="bg-slate-950 p-3 rounded border border-slate-800 text-slate-300 overflow-x-auto">curl -N
-          "http://127.0.0.1:8321/api/v1/devices/10.0.0.1/stream"</pre>
+            class="bg-slate-950 p-3 rounded border border-slate-800 text-slate-300 overflow-x-auto">curl -N "http://127.0.0.1:8321/api/v1/devices/10.0.0.1/stream"</pre>
         </div>
       </div>
     </div>
@@ -626,10 +753,11 @@
 
   <!-- Modal: Log Detail / JSON Inspector -->
   <div id="log-detail-modal"
-    class="fixed inset-0 bg-black/75 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    style="user-select: text; -webkit-user-select: text;"
+    class="fixed inset-0 bg-black/75 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4 select-text">
     <div
-      class="bg-slate-900 border border-slate-800 rounded-xl max-w-3xl w-full max-h-[85vh] flex flex-col shadow-2xl overflow-hidden font-mono text-xs">
-      <div class="p-3.5 border-b border-slate-800 flex justify-between items-center bg-slate-950">
+      class="bg-slate-900 border border-slate-800 rounded-xl max-w-3xl w-full max-h-[85vh] flex flex-col shadow-2xl overflow-hidden font-mono text-xs select-text">
+      <div class="p-3.5 border-b border-slate-800 flex justify-between items-center bg-slate-950 select-none">
         <div class="flex items-center gap-2">
           <span id="modal-sev-badge" class="px-2 py-0.5 rounded text-[10px] font-bold"></span>
           <span id="modal-vendor-badge" class="px-2 py-0.5 rounded text-[10px] font-bold"></span>
@@ -643,33 +771,372 @@
         </button>
       </div>
 
-      <div class="p-4 overflow-y-auto space-y-3 flex-1">
+      <div class="p-4 overflow-y-auto space-y-3 flex-1 select-text">
         <!-- Raw Syslog Frame -->
-        <div>
-          <div class="flex justify-between items-center mb-1">
-            <span class="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Raw Syslog Packet</span>
-            <button onclick="copyRawLog()" class="text-[11px] text-emerald-400 hover:underline">Copy Raw</button>
+        <div class="select-text">
+          <div class="flex justify-between items-center mb-1 select-none">
+            <span class="text-[11px] font-semibold text-slate-400 uppercase tracking-wider" data-i18n="modal_raw_title">Raw Syslog Packet</span>
+            <button onclick="copyRawLog()" class="text-[11px] text-emerald-400 hover:underline" data-i18n="modal_raw_copy">Copy Raw</button>
           </div>
           <pre id="modal-raw"
-            class="p-3 rounded-lg bg-slate-950 border border-slate-800 text-slate-300 break-all select-all font-mono whitespace-pre-wrap"></pre>
+            style="user-select: text; -webkit-user-select: text;"
+            class="p-3 rounded-lg bg-slate-950 border border-slate-800 text-slate-300 break-all select-text cursor-text font-mono whitespace-pre-wrap"></pre>
         </div>
 
         <!-- Parsed Structured JSON -->
-        <div>
-          <div class="flex justify-between items-center mb-1">
-            <span class="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Parsed JSON Schema</span>
-            <button onclick="copyJsonLog()" class="text-[11px] text-emerald-400 hover:underline">Copy JSON</button>
+        <div class="select-text">
+          <div class="flex justify-between items-center mb-1 select-none">
+            <span class="text-[11px] font-semibold text-slate-400 uppercase tracking-wider" data-i18n="modal_json_title">Parsed JSON Schema</span>
+            <button onclick="copyJsonLog()" class="text-[11px] text-emerald-400 hover:underline" data-i18n="modal_json_copy">Copy JSON</button>
           </div>
           <pre id="modal-json"
-            class="p-3 rounded-lg bg-slate-950 border border-slate-800 text-emerald-300 break-all select-all font-mono whitespace-pre-wrap max-h-72 overflow-y-auto"></pre>
+            style="user-select: text; -webkit-user-select: text;"
+            class="p-3 rounded-lg bg-slate-950 border border-slate-800 text-emerald-300 break-all select-text cursor-text font-mono whitespace-pre-wrap max-h-72 overflow-y-auto"></pre>
         </div>
+      </div>
+
+      <!-- Modal Footer with selection tip -->
+      <div class="px-4 py-2 border-t border-slate-800 bg-slate-950/80 flex items-center justify-between text-[11px] text-slate-400 font-sans select-none">
+        <span class="text-slate-400" data-i18n="modal_select_hint">💡 Tip: You can select and copy any partial text with your mouse</span>
+        <button onclick="closeDetailModal()" class="px-3 py-1 rounded bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 transition">Close</button>
       </div>
     </div>
   </div>
 
-  <!-- Vanilla JS Engine -->
+  <!-- Vanilla JS Engine with i18n -->
   <script>
-    // State
+    // --- Internationalization (i18n) Dictionary ---
+    const I18N = {
+      en: {
+        app_title: "Syslog Aggregator",
+        stat_devices: "Devices:",
+        stat_online: "Online:",
+        stat_total_logs: "Total Logs:",
+        nav_forwarding: "Log Forwarding",
+        nav_webhooks: "Webhooks",
+        nav_api: "API",
+        ws_live: "WS LIVE",
+        ws_disconnected: "DISCONNECTED",
+        search_device_ph: "Search IP or hostname...",
+        filter_all: "All",
+        registered_sources: "Registered Sources",
+        refresh_sources_tip: "Refresh devices",
+        loading_devices: "Loading devices...",
+        no_devices_found: "No matching devices found",
+        wal_isolated: "WAL Isolated Mode",
+        retention_info: "Retention: 14d",
+        global_stream_title: "Global Stream (All Sources)",
+        global_stream_sub: "Streaming combined syslog activity across all isolated databases",
+        all_devices_badge: "ALL DEVICES",
+        global_all_logs: "All incoming logs",
+        search_logs_ph: "Search message, tag, raw, IP...",
+        sev_all: "All Severity",
+        sev_lte3: "≤ 3 - All Errors (0-3)",
+        sev_lte4: "≤ 4 - Warnings & Errors",
+        sev_0: "0 - Emergency",
+        sev_1: "1 - Alert",
+        sev_2: "2 - Critical",
+        sev_3: "3 - Error",
+        sev_4: "4 - Warning",
+        sev_5: "5 - Notice",
+        sev_6: "6 - Info",
+        sev_7: "7 - Debug",
+        fac_all: "All Facilities",
+        fac_0: "0 - kern (Kernel)",
+        fac_1: "1 - user (User)",
+        fac_3: "3 - daemon (Daemons)",
+        fac_4: "4 - auth (Security)",
+        fac_5: "5 - syslog (Syslog)",
+        fac_10: "10 - authpriv (Priv Auth)",
+        fac_16: "16 - local0 (Network)",
+        fac_17: "17 - local1",
+        fac_18: "18 - local2",
+        fac_19: "19 - local3",
+        fac_20: "20 - local4",
+        fac_21: "21 - local5",
+        fac_22: "22 - local6",
+        fac_23: "23 - local7 (Network)",
+        vendor_all: "All Vendors",
+        time_all: "Live / All Time",
+        time_15m: "Last 15 minutes",
+        time_1h: "Last 1 hour",
+        time_6h: "Last 6 hours",
+        time_24h: "Last 24 hours",
+        time_7d: "Last 7 days",
+        time_custom: "Custom Range...",
+        time_from_lbl: "From:",
+        time_to_lbl: "To:",
+        filter_apply: "Apply",
+        filter_reset: "Reset",
+        quick_presets_label: "Presets:",
+        quick_all: "All",
+        quick_errors: "⚠️ Errors (≤3)",
+        quick_drops: "⛔ Drops & Deny",
+        quick_ports: "🔌 Port / Link Status",
+        quick_auth: "🔒 Auth & Security",
+        quick_routing: "🌐 Routing (BGP/OSPF)",
+        modal_select_hint: "💡 Tip: You can select and copy any partial text with your mouse",
+        error_loading_logs: "Error loading logs from storage",
+        autoscroll: "Auto-scroll",
+        pause: "Pause",
+        resume: "Resume",
+        clear_console: "Clear view",
+        export_json: "Export JSON",
+        displaying: "Displaying",
+        logs_label: "logs",
+        inspect_tip: "Click any row to inspect parsed JSON & raw syslog",
+        live_streaming_active: "Live streaming active",
+        querying_db: "Querying isolated SQLite database...",
+        loaded_logs: "Loaded {count} logs (total matching: {total})",
+        device_forward_btn: "Forwarding",
+        fwd_modal_title: "Log Forwarding & Target Destinations",
+        fwd_modal_badge: "Syslog UDP / TCP / Webhooks",
+        fwd_modal_sub: "Relay incoming logs to external SIEMs (QRadar, Splunk, Graylog), secondary collectors, and webhooks",
+        tab_destinations: "📡 Destinations",
+        tab_routing: "🖧 Device Routing Matrix",
+        fwd_form_add_title: "Add Forwarding Destination",
+        fwd_form_edit_title: "Edit Destination: {name}",
+        cancel_edit: "Cancel editing",
+        fwd_name_label: "Destination Name",
+        fwd_name_ph: "e.g. SIEM QRadar, SOC Center, Graylog",
+        fwd_proto_label: "Protocol Type",
+        proto_udp: "Syslog UDP (Standard)",
+        proto_tcp: "Syslog TCP (Stream)",
+        proto_http: "HTTP Webhook (POST JSON)",
+        fwd_host_label_syslog: "Destination IP / Host",
+        fwd_host_label_webhook: "Destination URL (POST)",
+        fwd_host_ph_syslog: "10.100.1.50 or siem.corp.local",
+        fwd_host_ph_webhook: "https://siem.corp.local/api/syslog",
+        fwd_port_label: "Destination Port",
+        fwd_format_label: "Forwarding Format",
+        fmt_raw: "Original Raw Syslog",
+        fmt_json: "Normalized JSON",
+        fwd_source_label: "Source Device",
+        fwd_source_all: "All Devices (Global)",
+        fwd_vendor_label: "Vendor Filter",
+        vendor_all: "All Vendors",
+        vendor_cisco: "Cisco Only",
+        vendor_fortigate: "FortiGate Only",
+        vendor_linux: "Linux Only",
+        vendor_generic: "Generic Only",
+        fwd_sev_label: "Minimum Severity (≤)",
+        sev_filter_all: "All Logs (0-7)",
+        sev_filter_1: "≤ 1 (Emergency, Alert)",
+        sev_filter_2: "≤ 2 (Critical & above)",
+        sev_filter_3: "≤ 3 (Error & above)",
+        sev_filter_4: "≤ 4 (Warning & above)",
+        sev_filter_5: "≤ 5 (Notice & above)",
+        btn_test_probe: "Test Probe",
+        btn_save_dest: "Save Destination",
+        btn_update_dest: "Update Destination",
+        fwd_active_title: "Active Destinations",
+        btn_refresh: "Refresh list",
+        fwd_empty: "No forwarding destinations configured yet. Add one above.",
+        fwd_status_active: "Active",
+        fwd_status_paused: "Paused",
+        fwd_btn_test: "Test",
+        fwd_btn_pause: "Pause",
+        fwd_btn_resume: "Enable",
+        fwd_forwarded: "Forwarded:",
+        fwd_packets: "packets",
+        fwd_last: "Last:",
+        fwd_delete_confirm: "Delete this forwarding destination?",
+        routing_desc: "This matrix displays all log sources discovered by the aggregator and their current forwarding rules to external targets.",
+        routing_empty: "No registered devices found to build routing matrix.",
+        routing_not_configured: "Forwarding not configured",
+        routing_assign_btn: "+ Assign Target",
+        wh_modal_title: "Webhook Rules & Forwarding",
+        wh_form_title: "Create Forwarding Rule",
+        wh_name_label: "Rule Name",
+        wh_name_ph: "e.g. Cisco Critical Alerts",
+        wh_url_label: "Target URL (POST)",
+        wh_vendor_label: "Vendor Match",
+        wh_sev_label: "Max Severity (≤)",
+        wh_action_label: "FortiGate Action Match",
+        wh_regex_label: "Regex Filter (Optional)",
+        wh_btn_save: "Save Rule",
+        wh_active_title: "Active Rules",
+        wh_empty: "No webhook rules configured yet.",
+        wh_delete_confirm: "Delete this webhook rule?",
+        api_modal_title: "📡 Integration & Ingestion Quick Reference",
+        api_step1: "1. Send Syslog over UDP (Port 514):",
+        api_step2: "2. Send Syslog over TCP (Port 514):",
+        api_step3: "3. REST API - Query Device Logs:",
+        api_step4: "4. Server-Sent Events (SSE) Stream:",
+        modal_raw_title: "Raw Syslog Packet",
+        modal_raw_copy: "Copy Raw",
+        modal_json_title: "Parsed JSON Schema",
+        modal_json_copy: "Copy JSON",
+        alert_fill_fields: "Please fill destination name and host/URL.",
+        unknown_host: "Unknown host"
+      },
+      ru: {
+        app_title: "Syslog-Агрегатор",
+        stat_devices: "Устройства:",
+        stat_online: "Онлайн:",
+        stat_total_logs: "Всего логов:",
+        nav_forwarding: "Пересылка логов",
+        nav_webhooks: "Вебхуки",
+        nav_api: "API",
+        ws_live: "WS В СЕТИ",
+        ws_disconnected: "ОТКЛЮЧЕНО",
+        search_device_ph: "Поиск по IP или хосту...",
+        filter_all: "Все",
+        registered_sources: "Источники логов",
+        refresh_sources_tip: "Обновить список устройств",
+        loading_devices: "Загрузка устройств...",
+        no_devices_found: "Устройства не найдены",
+        wal_isolated: "Режим изоляции WAL",
+        retention_info: "Хранение: 14 дн",
+        global_stream_title: "Общий поток (Все источники)",
+        global_stream_sub: "Стриминг активности по всем изолированным базам",
+        all_devices_badge: "ВСЕ УСТРОЙСТВА",
+        global_all_logs: "Все входящие логи",
+        search_logs_ph: "Поиск по сообщениям, тегу, raw, IP...",
+        sev_all: "Все уровни",
+        sev_lte3: "≤ 3 - Все ошибки (0-3)",
+        sev_lte4: "≤ 4 - Предупреждения и ошибки",
+        sev_0: "0 - Экстренный (Emergency)",
+        sev_1: "1 - Тревога (Alert)",
+        sev_2: "2 - Критический (Critical)",
+        sev_3: "3 - Ошибка (Error)",
+        sev_4: "4 - Предупреждение (Warning)",
+        sev_5: "5 - Уведомление (Notice)",
+        sev_6: "6 - Информация (Info)",
+        sev_7: "7 - Отладка (Debug)",
+        fac_all: "Все категории (Facility)",
+        fac_0: "0 - kern (Ядро)",
+        fac_1: "1 - user (Пользовательские)",
+        fac_3: "3 - daemon (Службы)",
+        fac_4: "4 - auth (Безопасность)",
+        fac_5: "5 - syslog (Системный лог)",
+        fac_10: "10 - authpriv (Приватная авториз.)",
+        fac_16: "16 - local0 (Сетевое оборуд.)",
+        fac_17: "17 - local1",
+        fac_18: "18 - local2",
+        fac_19: "19 - local3",
+        fac_20: "20 - local4",
+        fac_21: "21 - local5",
+        fac_22: "22 - local6",
+        fac_23: "23 - local7 (Сетевое оборуд.)",
+        vendor_all: "Все вендоры",
+        time_all: "Все время / Live",
+        time_15m: "Посл. 15 минут",
+        time_1h: "Посл. 1 час",
+        time_6h: "Посл. 6 часов",
+        time_24h: "Посл. 24 часа",
+        time_7d: "Посл. 7 дней",
+        time_custom: "Свой диапазон...",
+        time_from_lbl: "С:",
+        time_to_lbl: "По:",
+        filter_apply: "Применить",
+        filter_reset: "Сбросить",
+        quick_presets_label: "Быстрые фильтры:",
+        quick_all: "Все",
+        quick_errors: "⚠️ Ошибки (≤3)",
+        quick_drops: "⛔ Дропы и Deny",
+        quick_ports: "🔌 Порты и Линки",
+        quick_auth: "🔒 Аутентификация",
+        quick_routing: "🌐 Маршрутизация",
+        modal_select_hint: "💡 Подсказка: Вы можете выделить мышью любую часть текста",
+        error_loading_logs: "Ошибка загрузки логов из хранилища",
+        autoscroll: "Автопрокрутка",
+        pause: "Пауза",
+        resume: "Продолжить",
+        clear_console: "Очистить консоль",
+        export_json: "Экспорт JSON",
+        displaying: "Отображено",
+        logs_label: "логов",
+        inspect_tip: "Нажмите на строку для просмотра JSON и raw",
+        live_streaming_active: "Живой стрим активен",
+        querying_db: "Запрос к изолированной БД SQLite...",
+        loaded_logs: "Загружено {count} логов (всего найдено: {total})",
+        device_forward_btn: "Ретрансляция",
+        fwd_modal_title: "Настройка пересылки логов и конечных точек",
+        fwd_modal_badge: "Syslog UDP / TCP / Webhooks",
+        fwd_modal_sub: "Ретрансляция входящих логов на внешние SIEM (QRadar, Splunk, Graylog), вторичные коллекторы и вебхуки",
+        tab_destinations: "📡 Конечные точки (Destinations)",
+        tab_routing: "🖧 Маршрутизация по устройствам (Device Matrix)",
+        fwd_form_add_title: "Добавить конечную точку назначения",
+        fwd_form_edit_title: "Редактировать точку: {name}",
+        cancel_edit: "Отменить редактирование",
+        fwd_name_label: "Название назначения",
+        fwd_name_ph: "например, SIEM QRadar, SOC Center, Graylog",
+        fwd_proto_label: "Тип протокола",
+        proto_udp: "Syslog UDP (Стандартный)",
+        proto_tcp: "Syslog TCP (Потоковый)",
+        proto_http: "HTTP Webhook (POST JSON)",
+        fwd_host_label_syslog: "IP-адрес / Хост назначения",
+        fwd_host_label_webhook: "URL Назначения (POST)",
+        fwd_host_ph_syslog: "10.100.1.50 или siem.corp.local",
+        fwd_host_ph_webhook: "https://siem.corp.local/api/syslog",
+        fwd_port_label: "Порт назначения",
+        fwd_format_label: "Формат пересылки",
+        fmt_raw: "Оригинальный Raw Syslog",
+        fmt_json: "Нормализованный JSON",
+        fwd_source_label: "Источник (Устройство)",
+        fwd_source_all: "Все устройства (Global)",
+        fwd_vendor_label: "Фильтр по вендору",
+        vendor_all: "Все вендоры",
+        vendor_cisco: "Только Cisco",
+        vendor_fortigate: "Только FortiGate",
+        vendor_linux: "Только Linux",
+        vendor_generic: "Только Generic",
+        fwd_sev_label: "Минимальная важность (≤)",
+        sev_filter_all: "Все логи (0-7)",
+        sev_filter_1: "≤ 1 (Emergency, Alert)",
+        sev_filter_2: "≤ 2 (Critical и выше)",
+        sev_filter_3: "≤ 3 (Error и выше)",
+        sev_filter_4: "≤ 4 (Warning и выше)",
+        sev_filter_5: "≤ 5 (Notice и выше)",
+        btn_test_probe: "Проверить отправку (Test probe)",
+        btn_save_dest: "Сохранить точку",
+        btn_update_dest: "Обновить точку",
+        fwd_active_title: "Активные точки ретрансляции",
+        btn_refresh: "Обновить список",
+        fwd_empty: "Точки пересылки ещё не настроены. Добавьте первую точку выше.",
+        fwd_status_active: "Активна",
+        fwd_status_paused: "Пауза",
+        fwd_btn_test: "Тест",
+        fwd_btn_pause: "Пауза",
+        fwd_btn_resume: "Включить",
+        fwd_forwarded: "Переслано:",
+        fwd_packets: "пакетов",
+        fwd_last: "Посл:",
+        fwd_delete_confirm: "Удалить эту точку пересылки?",
+        routing_desc: "В данной таблице отображены все источники логов, обнаруженные агрегатором, и правила их маршрутизации на внешние серверы.",
+        routing_empty: "Нет зарегистрированных устройств для построения матрицы.",
+        routing_not_configured: "Ретрансляция не настроена",
+        routing_assign_btn: "+ Назначить точку",
+        wh_modal_title: "Правила вебхуков и алерты",
+        wh_form_title: "Создать правило вебхука",
+        wh_name_label: "Название правила",
+        wh_name_ph: "например, Cisco Critical Alerts",
+        wh_url_label: "URL назначения (POST)",
+        wh_vendor_label: "Фильтр по вендору",
+        wh_sev_label: "Макс. уровень (≤)",
+        wh_action_label: "Действие FortiGate",
+        wh_regex_label: "Regex фильтр (Опционально)",
+        wh_btn_save: "Сохранить правило",
+        wh_active_title: "Активные правила",
+        wh_empty: "Правила вебхуков ещё не настроены.",
+        wh_delete_confirm: "Удалить это правило вебхука?",
+        api_modal_title: "📡 Справочник интеграции и отправки логов",
+        api_step1: "1. Отправка Syslog по UDP (Порт 514):",
+        api_step2: "2. Отправка Syslog по TCP (Порт 514):",
+        api_step3: "3. REST API - Запрос архивных логов:",
+        api_step4: "4. Поток Server-Sent Events (SSE):",
+        modal_raw_title: "Сырой Syslog пакет",
+        modal_raw_copy: "Копировать Raw",
+        modal_json_title: "Разобранная JSON схема",
+        modal_json_copy: "Копировать JSON",
+        alert_fill_fields: "Пожалуйста, заполните название и хост/URL назначения.",
+        unknown_host: "Без имени"
+      }
+    };
+
+    // State (Default is English 'en')
+    let currentLang = localStorage.getItem('syslog_lang') || 'en';
     let devices = [];
     let activeVendorFilter = 'all';
     let selectedDeviceIp = null; // null = Global Stream
@@ -678,6 +1145,79 @@
     let logsBuffer = [];
     const MAX_BUFFER_SIZE = 500;
     let currentModalLog = null;
+    let forwardingEndpoints = [];
+    let currentQuickPreset = 'all';
+
+    function t(key, params = {}) {
+      const dict = I18N[currentLang] || I18N.en;
+      let text = dict[key] || I18N.en[key] || key;
+      for (const [k, v] of Object.entries(params)) {
+        text = text.replace(new RegExp(`\\{${k}\\}`, 'g'), v);
+      }
+      return text;
+    }
+
+    function setLanguage(lang) {
+      currentLang = lang;
+      localStorage.setItem('syslog_lang', lang);
+      updateUiLanguage();
+    }
+
+    function updateUiLanguage() {
+      // Update toggle buttons in navbar
+      const btnEn = document.getElementById('lang-btn-en');
+      const btnRu = document.getElementById('lang-btn-ru');
+      if (btnEn && btnRu) {
+        if (currentLang === 'en') {
+          btnEn.className = "px-2 py-0.5 rounded font-bold transition bg-emerald-600 text-white shadow";
+          btnRu.className = "px-2 py-0.5 rounded font-bold transition text-slate-400 hover:text-slate-200";
+        } else {
+          btnRu.className = "px-2 py-0.5 rounded font-bold transition bg-emerald-600 text-white shadow";
+          btnEn.className = "px-2 py-0.5 rounded font-bold transition text-slate-400 hover:text-slate-200";
+        }
+      }
+
+      // Update elements with data-i18n
+      document.querySelectorAll('[data-i18n]').forEach(el => {
+        const key = el.getAttribute('data-i18n');
+        if (key && I18N[currentLang] && I18N[currentLang][key]) {
+          el.textContent = t(key);
+        }
+      });
+
+      // Update elements with data-i18n-placeholder
+      document.querySelectorAll('[data-i18n-placeholder]').forEach(el => {
+        const key = el.getAttribute('data-i18n-placeholder');
+        if (key) {
+          el.placeholder = t(key);
+        }
+      });
+
+      // Update elements with data-i18n-title
+      document.querySelectorAll('[data-i18n-title]').forEach(el => {
+        const key = el.getAttribute('data-i18n-title');
+        if (key) {
+          el.title = t(key);
+        }
+      });
+
+      // Update dynamic titles
+      if (selectedDeviceIp === null) {
+        document.getElementById('active-vendor-badge').textContent = t('all_devices_badge');
+        document.getElementById('active-device-title').textContent = t('global_stream_title');
+        document.getElementById('active-device-subtitle').innerHTML = `<span>${t('global_stream_sub')}</span>`;
+      }
+
+      onForwardTypeChange();
+      renderDeviceList();
+      renderForwardingEndpointsList();
+      populateDeviceFilterDropdown();
+
+      const routingContent = document.getElementById('tab-content-routing');
+      if (routingContent && !routingContent.classList.contains('hidden')) {
+        renderForwardingRoutingMatrix();
+      }
+    }
 
     // Severity Colors and Labels
     const SEV_MAP = {
@@ -708,11 +1248,10 @@
       ws.onopen = () => {
         document.getElementById('ws-indicator').innerHTML = `
           <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-          <span>WS LIVE</span>
+          <span>${t('ws_live')}</span>
         `;
         document.getElementById('ws-indicator').className = "flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-mono bg-emerald-950/80 text-emerald-400 border border-emerald-800/80";
 
-        // Sync current filter
         if (selectedDeviceIp) {
           ws.send(JSON.stringify({ action: "filter", ip: selectedDeviceIp }));
         }
@@ -725,18 +1264,9 @@
           const item = JSON.parse(event.data);
           if (item.type === 'info' || item.type === 'pong') return;
 
-          // If a device filter is selected and does not match, ignore
-          if (selectedDeviceIp && item.source_ip !== selectedDeviceIp) return;
-
-          // Check severity filter
-          const sevFilter = document.getElementById('severity-select').value;
-          if (sevFilter !== "" && item.severity !== parseInt(sevFilter)) return;
-
-          // Check text filter
-          const textFilter = document.getElementById('log-search-input').value.trim().toLowerCase();
-          if (textFilter && !JSON.stringify(item).toLowerCase().includes(textFilter)) return;
-
-          appendLogEntry(item, true);
+          if (matchesFilters(item)) {
+            appendLogEntry(item, true);
+          }
         } catch (e) {
           console.error("WS parse error", e);
         }
@@ -745,7 +1275,7 @@
       ws.onclose = () => {
         document.getElementById('ws-indicator').innerHTML = `
           <span class="w-2 h-2 rounded-full bg-rose-500"></span>
-          <span>DISCONNECTED</span>
+          <span>${t('ws_disconnected')}</span>
         `;
         document.getElementById('ws-indicator').className = "flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-mono bg-rose-950 text-rose-400 border border-rose-800";
         setTimeout(initWebSocket, 3000);
@@ -760,6 +1290,7 @@
         devices = data.devices || [];
         renderDeviceList();
         updateTopStats();
+        populateDeviceFilterDropdown();
       } catch (e) {
         console.error("Failed to fetch devices", e);
       }
@@ -806,8 +1337,8 @@
           <div class="flex items-center gap-2.5">
             <div class="w-2.5 h-2.5 rounded-full bg-emerald-400"></div>
             <div>
-              <div class="text-xs font-semibold text-slate-200">Global Stream</div>
-              <div class="text-[11px] text-slate-500 font-mono">All incoming logs</div>
+              <div class="text-xs font-semibold text-slate-200">${t('global_stream_title')}</div>
+              <div class="text-[11px] text-slate-500 font-mono">${t('global_all_logs')}</div>
             </div>
           </div>
           <span class="text-[10px] px-1.5 py-0.5 rounded font-mono bg-slate-800 text-slate-400 border border-slate-700">LIVE</span>
@@ -815,7 +1346,7 @@
       `;
 
       if (filtered.length === 0) {
-        html += `<div class="text-xs text-slate-500 text-center py-6">No matching devices found</div>`;
+        html += `<div class="text-xs text-slate-500 text-center py-6">${t('no_devices_found')}</div>`;
       } else {
         filtered.forEach(d => {
           const isSelected = selectedDeviceIp === d.ip;
@@ -833,12 +1364,12 @@
                     <span class="text-xs font-mono font-semibold text-slate-200">${d.ip}</span>
                     <span class="text-[9px] px-1.5 py-0.2 rounded font-mono border ${vColor}">${d.vendor_type}</span>
                   </div>
-                  <div class="text-[11px] text-slate-400 truncate">${d.hostname || 'Unknown host'}</div>
+                  <div class="text-[11px] text-slate-400 truncate">${d.hostname || t('unknown_host')}</div>
                 </div>
               </div>
               <div class="text-right shrink-0">
                 <span class="text-xs font-mono font-bold text-slate-300">${Number(d.log_count).toLocaleString()}</span>
-                <div class="text-[10px] text-slate-500 font-mono">logs</div>
+                <div class="text-[10px] text-slate-500 font-mono">${t('logs_label')}</div>
               </div>
             </div>
           `;
@@ -856,15 +1387,15 @@
 
       if (ip === null) {
         if (fwdBtn) { fwdBtn.classList.add('hidden'); fwdBtn.classList.remove('flex'); }
-        document.getElementById('active-vendor-badge').textContent = 'GLOBAL';
-        document.getElementById('active-vendor-badge').className = 'px-2.5 py-1 rounded text-xs font-mono uppercase font-bold bg-slate-800 text-slate-300 border border-slate-700';
-        document.getElementById('active-device-title').textContent = 'Global Stream (All Sources)';
+        document.getElementById('active-vendor-badge').textContent = t('all_devices_badge');
+        document.getElementById('active-vendor-badge').className = 'px-2 py-0.5 rounded text-xs font-mono uppercase font-bold bg-slate-800 text-slate-300 border border-slate-700';
+        document.getElementById('active-device-title').textContent = t('global_stream_title');
         document.getElementById('active-device-db').textContent = '';
-        document.getElementById('active-device-subtitle').textContent = 'Streaming combined syslog activity across all isolated databases';
+        document.getElementById('active-device-subtitle').innerHTML = `<span>${t('global_stream_sub')}</span>`;
         if (ws && ws.readyState === WebSocket.OPEN) {
           ws.send(JSON.stringify({ action: 'filter', ip: null }));
         }
-        loadGlobalRecentLogs();
+        loadCurrentLogs();
       } else {
         if (fwdBtn) { fwdBtn.classList.remove('hidden'); fwdBtn.classList.add('flex'); }
         const dev = devices.find(d => d.ip === ip);
@@ -872,52 +1403,216 @@
         const vColor = VENDOR_COLORS[vendor] || VENDOR_COLORS.generic;
 
         document.getElementById('active-vendor-badge').textContent = vendor.toUpperCase();
-        document.getElementById('active-vendor-badge').className = `px-2.5 py-1 rounded text-xs font-mono uppercase font-bold border ${vColor}`;
+        document.getElementById('active-vendor-badge').className = `px-2 py-0.5 rounded text-xs font-mono uppercase font-bold border ${vColor}`;
         document.getElementById('active-device-title').textContent = `${ip} ${dev?.hostname ? `(${dev.hostname})` : ''}`;
         document.getElementById('active-device-db').textContent = `DB: /data/devices/${ip}.db`;
-        document.getElementById('active-device-subtitle').textContent = `Isolated SQLite database • Total logs: ${dev ? Number(dev.log_count).toLocaleString() : '...'}`;
+        document.getElementById('active-device-subtitle').textContent = `Isolated SQLite DB • Total logs: ${dev ? Number(dev.log_count).toLocaleString() : '...'}`;
 
         if (ws && ws.readyState === WebSocket.OPEN) {
           ws.send(JSON.stringify({ action: 'filter', ip: ip }));
         }
-        loadDeviceLogs(ip);
+        loadCurrentLogs();
       }
+    }
+
+    // --- Quick Presets & Filters Management ---
+    function applyQuickPreset(preset) {
+      currentQuickPreset = preset;
+      document.querySelectorAll('.preset-chip').forEach(btn => {
+        if (btn.id === `preset-chip-${preset}`) {
+          btn.className = "preset-chip px-2 py-0.5 rounded font-mono bg-emerald-950/80 text-emerald-300 border border-emerald-700/80 shadow";
+        } else {
+          btn.className = "preset-chip px-2 py-0.5 rounded font-mono bg-slate-900 text-slate-400 border border-slate-800 hover:border-slate-700 hover:text-slate-200 transition";
+        }
+      });
+      loadCurrentLogs();
+    }
+
+    function handleTimeRangeChange() {
+      const val = document.getElementById('time-range-select').value;
+      const container = document.getElementById('custom-time-container');
+      if (val === 'custom') {
+        container.classList.remove('hidden');
+        container.classList.add('flex');
+      } else {
+        container.classList.add('hidden');
+        container.classList.remove('flex');
+        loadCurrentLogs();
+      }
+    }
+
+    function clearSearchInput() {
+      const input = document.getElementById('log-search-input');
+      input.value = '';
+      const clearBtn = document.getElementById('clear-search-btn');
+      if (clearBtn) clearBtn.classList.add('hidden');
+      loadCurrentLogs();
+    }
+
+    function resetFilters() {
+      const searchInput = document.getElementById('log-search-input');
+      if (searchInput) searchInput.value = '';
+      const clearBtn = document.getElementById('clear-search-btn');
+      if (clearBtn) clearBtn.classList.add('hidden');
+
+      const sevSelect = document.getElementById('severity-select');
+      if (sevSelect) sevSelect.value = '';
+
+      const facSelect = document.getElementById('facility-select');
+      if (facSelect) facSelect.value = '';
+
+      const vendorSelect = document.getElementById('console-vendor-select');
+      if (vendorSelect) vendorSelect.value = 'all';
+
+      const trSelect = document.getElementById('time-range-select');
+      if (trSelect) trSelect.value = 'all';
+
+      const customTime = document.getElementById('custom-time-container');
+      if (customTime) {
+        customTime.classList.add('hidden');
+        customTime.classList.remove('flex');
+      }
+      const tf = document.getElementById('time-from');
+      if (tf) tf.value = '';
+      const tt = document.getElementById('time-to');
+      if (tt) tt.value = '';
+
+      const limitSelect = document.getElementById('limit-select');
+      if (limitSelect) limitSelect.value = '100';
+
+      applyQuickPreset('all');
+    }
+
+    function buildLogQueryParams() {
+      const params = new URLSearchParams();
+      const limit = document.getElementById('limit-select')?.value || '100';
+      params.set('limit', limit);
+
+      const q = document.getElementById('log-search-input')?.value.trim();
+      if (q) params.set('q', q);
+
+      const sev = document.getElementById('severity-select')?.value || '';
+      if (sev === 'lte_3') {
+        params.set('severity_max', '3');
+      } else if (sev === 'lte_4') {
+        params.set('severity_max', '4');
+      } else if (sev !== '') {
+        params.set('severity', sev);
+      }
+
+      const fac = document.getElementById('facility-select')?.value || '';
+      if (fac !== '') {
+        params.set('facility', fac);
+      }
+
+      const vendor = document.getElementById('console-vendor-select')?.value || 'all';
+      if (vendor !== 'all') {
+        params.set('vendor_type', vendor);
+      }
+
+      if (currentQuickPreset === 'errors') {
+        params.set('severity_max', '3');
+      } else if (currentQuickPreset === 'drops') {
+        if (!q) params.set('q', 'deny');
+      } else if (currentQuickPreset === 'ports') {
+        if (!q) params.set('tag', 'LINK');
+      } else if (currentQuickPreset === 'auth') {
+        if (!q) params.set('tag', 'sshd');
+      } else if (currentQuickPreset === 'routing') {
+        if (!q) params.set('q', 'BGP');
+      }
+
+      const tr = document.getElementById('time-range-select')?.value || 'all';
+      const now = Date.now();
+      if (tr === '15m') {
+        params.set('start_time', new Date(now - 15 * 60 * 1000).toISOString());
+      } else if (tr === '1h') {
+        params.set('start_time', new Date(now - 60 * 60 * 1000).toISOString());
+      } else if (tr === '6h') {
+        params.set('start_time', new Date(now - 6 * 3600 * 1000).toISOString());
+      } else if (tr === '24h') {
+        params.set('start_time', new Date(now - 24 * 3600 * 1000).toISOString());
+      } else if (tr === '7d') {
+        params.set('start_time', new Date(now - 7 * 86400 * 1000).toISOString());
+      } else if (tr === 'custom') {
+        const tf = document.getElementById('time-from')?.value;
+        const tt = document.getElementById('time-to')?.value;
+        if (tf) params.set('start_time', new Date(tf).toISOString());
+        if (tt) params.set('end_time', new Date(tt).toISOString());
+      }
+
+      return params;
     }
 
     // --- Loading Logs from SQLite DB ---
     async function loadCurrentLogs() {
-      if (selectedDeviceIp) {
-        loadDeviceLogs(selectedDeviceIp);
-      } else {
-        loadGlobalRecentLogs();
-      }
-    }
+      const params = buildLogQueryParams();
+      let url = selectedDeviceIp
+        ? `/api/v1/devices/${selectedDeviceIp}/logs?${params.toString()}`
+        : `/api/v1/logs?${params.toString()}`;
 
-    async function loadDeviceLogs(ip) {
-      const sev = document.getElementById('severity-select').value;
-      const q = document.getElementById('log-search-input').value.trim();
-      let url = `/api/v1/devices/${ip}/logs?limit=150`;
-      if (sev !== "") url += `&severity=${sev}`;
-      if (q) url += `&q=${encodeURIComponent(q)}`;
-
-      document.getElementById('logs-query-status').textContent = "Querying isolated SQLite database...";
+      document.getElementById('logs-query-status').textContent = t('querying_db');
 
       try {
         const res = await fetch(url);
         const data = await res.json();
         logsBuffer = data.logs || [];
         renderLogsBuffer();
-        document.getElementById('logs-query-status').textContent = `Loaded ${logsBuffer.length} logs (matching total: ${data.total})`;
+        document.getElementById('logs-query-status').textContent = t('loaded_logs', { count: logsBuffer.length, total: data.total || 0 });
       } catch (e) {
-        console.error("Failed to load device logs", e);
+        console.error("Failed to load logs", e);
+        document.getElementById('logs-query-status').textContent = t('error_loading_logs');
       }
     }
 
-    async function loadGlobalRecentLogs() {
-      // Clear buffer for live global stream
-      logsBuffer = [];
-      renderLogsBuffer();
-      document.getElementById('logs-query-status').textContent = "Live streaming active across all devices";
+    function matchesFilters(item) {
+      if (selectedDeviceIp && item.source_ip !== selectedDeviceIp) return false;
+
+      const sevFilter = document.getElementById('severity-select')?.value || '';
+      if (sevFilter === 'lte_3') {
+        if (item.severity > 3) return false;
+      } else if (sevFilter === 'lte_4') {
+        if (item.severity > 4) return false;
+      } else if (sevFilter !== '') {
+        if (item.severity !== parseInt(sevFilter)) return false;
+      }
+
+      const facFilter = document.getElementById('facility-select')?.value || '';
+      if (facFilter !== '' && item.facility !== parseInt(facFilter)) return false;
+
+      const vendorFilter = document.getElementById('console-vendor-select')?.value || 'all';
+      if (vendorFilter !== 'all' && item.vendor_type !== vendorFilter) return false;
+
+      if (currentQuickPreset === 'errors') {
+        if (item.severity > 3) return false;
+      } else if (currentQuickPreset === 'drops') {
+        const act = ((item.parsed_json && item.parsed_json.action) || '').toLowerCase();
+        const raw = (item.raw || '').toLowerCase();
+        if (!['deny', 'drop', 'block', 'close', 'teardown'].includes(act) && !raw.includes('deny') && !raw.includes('drop') && !raw.includes('block')) return false;
+      } else if (currentQuickPreset === 'ports') {
+        const str = ((item.mnemonic || '') + ' ' + (item.raw || '')).toLowerCase();
+        if (!str.includes('link') && !str.includes('updown') && !str.includes('state')) return false;
+      } else if (currentQuickPreset === 'auth') {
+        const str = ((item.tag || '') + ' ' + (item.raw || '')).toLowerCase();
+        if (!str.includes('sshd') && !str.includes('sudo') && !str.includes('auth') && !str.includes('login') && !str.includes('pam')) return false;
+      } else if (currentQuickPreset === 'routing') {
+        const str = ((item.mnemonic || '') + ' ' + (item.raw || '')).toLowerCase();
+        if (!str.includes('bgp') && !str.includes('ospf') && !str.includes('neighbor')) return false;
+      }
+
+      const textFilter = document.getElementById('log-search-input')?.value.trim().toLowerCase();
+      if (textFilter) {
+        const haystack = (
+          (item.raw || '') + ' ' +
+          (item.source_ip || '') + ' ' +
+          (item.tag || '') + ' ' +
+          (item.mnemonic || '') + ' ' +
+          JSON.stringify(item.parsed_json || {})
+        ).toLowerCase();
+        if (!haystack.includes(textFilter)) return false;
+      }
+
+      return true;
     }
 
     // --- Rendering Log Rows ---
@@ -950,12 +1645,11 @@
 
     function createLogRow(item) {
       const row = document.createElement('div');
-      row.className = "log-row group p-2 rounded bg-slate-900/50 hover:bg-slate-800/80 border border-slate-800/80 hover:border-slate-700 cursor-pointer transition flex flex-col sm:flex-row items-start sm:items-center gap-2";
+      row.className = "log-row group p-2 rounded bg-slate-900/50 hover:bg-slate-800/80 border border-slate-800/80 hover:border-slate-700 cursor-pointer transition flex flex-col sm:flex-row items-start sm:items-center gap-2 select-text";
 
       const sev = SEV_MAP[item.severity] || { label: `LVL${item.severity}`, class: "bg-slate-800 text-slate-300 border-slate-700" };
       const vColor = VENDOR_COLORS[item.vendor_type] || VENDOR_COLORS.generic;
 
-      // Smart vendor badge & summary
       let vendorSpecificBadge = '';
       let messageContent = item.raw;
 
@@ -991,7 +1685,6 @@
         messageContent = item.message || item.raw;
       }
 
-      // Format timestamp
       const timeStr = item.timestamp ? item.timestamp.replace('T', ' ').substring(11, 23) : '--:--:--';
 
       row.innerHTML = `
@@ -1008,7 +1701,11 @@
         </div>
       `;
 
-      row.onclick = () => openDetailModal(item);
+      row.onclick = () => {
+        const selection = window.getSelection();
+        if (selection && selection.toString().trim().length > 0) return;
+        openDetailModal(item);
+      };
       return row;
     }
 
@@ -1029,7 +1726,7 @@
       const toggle = document.getElementById('autoscroll-toggle');
       if (toggle && toggle.checked) {
         const viewport = document.getElementById('logs-viewport');
-        viewport.scrollTop = 0; // Since latest logs are prepended to top
+        viewport.scrollTop = 0;
       }
     }
 
@@ -1049,11 +1746,11 @@
       const icon = document.getElementById('stream-btn-icon');
 
       if (isStreamPaused) {
-        text.textContent = "Resume";
+        text.textContent = t('resume');
         btn.className = "px-2.5 py-1.5 rounded-lg bg-emerald-950 hover:bg-emerald-900 border border-emerald-700 text-emerald-300 text-xs flex items-center gap-1.5 transition";
         icon.innerHTML = `<path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clip-rule="evenodd"></path>`;
       } else {
-        text.textContent = "Pause";
+        text.textContent = t('pause');
         btn.className = "px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 text-xs flex items-center gap-1.5 transition";
         icon.innerHTML = `<path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zM7 8a1 1 0 012 0v4a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v4a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd"></path>`;
       }
@@ -1107,103 +1804,7 @@
       }
     }
 
-    // --- Webhooks Modal & Management ---
-    function openWebhooksModal() {
-      loadWebhooks();
-      document.getElementById('webhooks-modal').classList.remove('hidden');
-    }
-
-    function closeWebhooksModal() {
-      document.getElementById('webhooks-modal').classList.add('hidden');
-    }
-
-    async function loadWebhooks() {
-      const res = await fetch('/api/v1/webhooks');
-      const data = await res.json();
-      const list = document.getElementById('webhooks-list');
-      const rules = data.webhooks || [];
-
-      if (rules.length === 0) {
-        list.innerHTML = `<div class="text-xs text-slate-500 text-center py-4">No webhook rules configured yet.</div>`;
-        return;
-      }
-
-      list.innerHTML = rules.map(r => `
-        <div class="p-3 bg-slate-950 rounded-lg border border-slate-800 flex items-center justify-between text-xs">
-          <div>
-            <div class="flex items-center gap-2">
-              <span class="font-bold text-slate-200">${r.name}</span>
-              <span class="text-[10px] px-1.5 py-0.2 rounded font-mono bg-slate-800 text-slate-400">${r.vendor || 'ANY VENDOR'}</span>
-              ${r.max_severity !== null ? `<span class="text-[10px] px-1.5 py-0.2 rounded font-mono bg-orange-950 text-orange-400">Sev ≤ ${r.max_severity}</span>` : ''}
-              ${r.action ? `<span class="text-[10px] px-1.5 py-0.2 rounded font-mono bg-rose-950 text-rose-400">Action: ${r.action}</span>` : ''}
-            </div>
-            <div class="text-[11px] text-slate-400 font-mono truncate max-w-md mt-1">${r.target_url}</div>
-          </div>
-          <div class="flex items-center gap-2">
-            <button onclick="testWebhook('${r.target_url}')" class="px-2 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 text-[11px]">Test</button>
-            <button onclick="deleteWebhookRule(${r.id})" class="px-2 py-1 rounded bg-rose-950/80 hover:bg-rose-900 text-rose-300 text-[11px]">Delete</button>
-          </div>
-        </div>
-      `).join('');
-    }
-
-    async function addWebhookRule() {
-      const name = document.getElementById('wh-name').value.trim();
-      const url = document.getElementById('wh-url').value.trim();
-      const vendor = document.getElementById('wh-vendor').value;
-      const sev = document.getElementById('wh-severity').value;
-      const action = document.getElementById('wh-action').value.trim();
-      const regex = document.getElementById('wh-regex').value.trim();
-
-      if (!name || !url) {
-        alert("Please specify rule name and target URL");
-        return;
-      }
-
-      const payload = {
-        name: name,
-        target_url: url,
-        vendor: vendor || null,
-        max_severity: sev !== "" ? parseInt(sev) : null,
-        action: action || null,
-        filter_regex: regex || null
-      };
-
-      await fetch('/api/v1/webhooks', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      });
-
-      // Clear inputs
-      document.getElementById('wh-name').value = '';
-      document.getElementById('wh-url').value = '';
-      document.getElementById('wh-action').value = '';
-      document.getElementById('wh-regex').value = '';
-
-      loadWebhooks();
-    }
-
-    async function deleteWebhookRule(id) {
-      if (confirm("Delete this webhook rule?")) {
-        await fetch(`/api/v1/webhooks/${id}`, { method: 'DELETE' });
-        loadWebhooks();
-      }
-    }
-
-    async function testWebhook(url) {
-      const res = await fetch('/api/v1/webhooks/test', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ target_url: url })
-      });
-      const data = await res.json();
-      alert(data.message || data.detail || "Dispatched test payload");
-    }
-
-    // --- Forwarding Endpoints & Submenu Management ---
-    let forwardingEndpoints = [];
-
+    // --- Forwarding Endpoints & Destinations Submenu Management ---
     function openForwardingModal() {
       populateDeviceFilterDropdown();
       loadForwardingEndpoints();
@@ -1219,7 +1820,7 @@
       openForwardingModal();
       if (selectedDeviceIp) {
         document.getElementById('fwd-filter-device').value = selectedDeviceIp;
-        document.getElementById('fwd-name').value = `Ретрансляция ${selectedDeviceIp}`;
+        document.getElementById('fwd-name').value = `Forwarding ${selectedDeviceIp}`;
       }
     }
 
@@ -1250,12 +1851,12 @@
       const portWrapper = document.getElementById('fwd-port-wrapper');
 
       if (type === 'http_webhook') {
-        hostLabel.textContent = "URL Назначения (POST)";
-        hostInput.placeholder = "https://siem.corp.local/api/syslog";
+        hostLabel.textContent = t('fwd_host_label_webhook');
+        hostInput.placeholder = t('fwd_host_ph_webhook');
         portWrapper.classList.add('opacity-40');
       } else {
-        hostLabel.textContent = "IP-адрес / Хост назначения";
-        hostInput.placeholder = "10.100.1.50 или siem.corp.local";
+        hostLabel.textContent = t('fwd_host_label_syslog');
+        hostInput.placeholder = t('fwd_host_ph_syslog');
         portWrapper.classList.remove('opacity-40');
       }
     }
@@ -1263,7 +1864,7 @@
     function populateDeviceFilterDropdown() {
       const select = document.getElementById('fwd-filter-device');
       const currentVal = select.value;
-      let html = `<option value="">Все устройства (Global)</option>`;
+      let html = `<option value="">${t('fwd_source_all')}</option>`;
       devices.forEach(d => {
         html += `<option value="${d.ip}">${d.ip} (${d.hostname || d.vendor_type})</option>`;
       });
@@ -1277,7 +1878,6 @@
         const data = await res.json();
         forwardingEndpoints = data.endpoints || [];
 
-        // Update badges
         const count = forwardingEndpoints.filter(e => e.enabled).length;
         document.getElementById('stat-forwarding-count').textContent = count;
         document.getElementById('tab-endpoints-badge').textContent = forwardingEndpoints.length;
@@ -1291,7 +1891,7 @@
     function renderForwardingEndpointsList() {
       const list = document.getElementById('forwarding-endpoints-list');
       if (forwardingEndpoints.length === 0) {
-        list.innerHTML = `<div class="text-xs text-slate-500 text-center py-6">Точки пересылки ещё не настроены. Создайте первую точку выше.</div>`;
+        list.innerHTML = `<div class="text-xs text-slate-500 text-center py-6">${t('fwd_empty')}</div>`;
         return;
       }
 
@@ -1305,8 +1905,8 @@
           : '<span class="px-1.5 py-0.5 rounded text-[10px] font-mono font-bold bg-purple-950 text-purple-300 border border-purple-800">WEBHOOK</span>';
 
         const statusBadge = ep.enabled
-          ? '<span class="w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_6px_#22c55e]"></span><span class="text-emerald-400 font-semibold text-[11px]">Активна</span>'
-          : '<span class="w-2 h-2 rounded-full bg-slate-600"></span><span class="text-slate-500 text-[11px]">Пауза</span>';
+          ? `<span class="w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_6px_#22c55e]"></span><span class="text-emerald-400 font-semibold text-[11px]">${t('fwd_status_active')}</span>`
+          : `<span class="w-2 h-2 rounded-full bg-slate-600"></span><span class="text-slate-500 text-[11px]">${t('fwd_status_paused')}</span>`;
 
         const filterDeviceBadge = ep.filter_source_ip
           ? `<span class="px-1.5 py-0.2 rounded font-mono text-[10px] bg-slate-800 text-slate-300 border border-slate-700">Source: ${ep.filter_source_ip}</span>`
@@ -1341,25 +1941,25 @@
                 ${filterSevBadge}
               </div>
               <div class="text-[10px] text-slate-500 font-mono flex items-center gap-3">
-                <span>Переслано: <strong class="text-emerald-400">${Number(ep.forwarded_count || 0).toLocaleString()}</strong> пакетов</span>
-                ${ep.last_forwarded ? `<span>Посл: ${ep.last_forwarded.replace('T', ' ').substring(11, 19)}</span>` : ''}
+                <span>${t('fwd_forwarded')} <strong class="text-emerald-400">${Number(ep.forwarded_count || 0).toLocaleString()}</strong> ${t('fwd_packets')}</span>
+                ${ep.last_forwarded ? `<span>${t('fwd_last')} ${ep.last_forwarded.replace('T', ' ').substring(11, 19)}</span>` : ''}
               </div>
             </div>
 
             <div class="flex items-center gap-1.5 shrink-0">
-              <button onclick="testExistingEndpoint(${ep.id}, '${ep.target_type}', '${ep.host}', ${ep.port}, '${ep.forward_format}')" title="Отправить тестовый пакет"
+              <button onclick="testExistingEndpoint(${ep.id}, '${ep.target_type}', '${ep.host}', ${ep.port}, '${ep.forward_format}')" title="${t('fwd_btn_test')}"
                 class="px-2.5 py-1 rounded bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 text-[11px] transition">
-                Тест
+                ${t('fwd_btn_test')}
               </button>
-              <button onclick="toggleForwardingEndpoint(${ep.id}, ${ep.enabled ? 1 : 0})" title="Включить / приостановить"
+              <button onclick="toggleForwardingEndpoint(${ep.id}, ${ep.enabled ? 1 : 0})"
                 class="px-2.5 py-1 rounded ${ep.enabled ? 'bg-amber-950/70 hover:bg-amber-900 border border-amber-800 text-amber-300' : 'bg-emerald-950/70 hover:bg-emerald-900 border border-emerald-800 text-emerald-300'} text-[11px] transition">
-                ${ep.enabled ? 'Пауза' : 'Включить'}
+                ${ep.enabled ? t('fwd_btn_pause') : t('fwd_btn_resume')}
               </button>
-              <button onclick='editForwardingEndpoint(${JSON.stringify(ep)})' title="Редактировать"
+              <button onclick='editForwardingEndpoint(${JSON.stringify(ep)})' title="Edit"
                 class="px-2 py-1 rounded bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 text-[11px] transition">
                 ✎
               </button>
-              <button onclick="deleteForwardingEndpoint(${ep.id})" title="Удалить"
+              <button onclick="deleteForwardingEndpoint(${ep.id})" title="Delete"
                 class="px-2 py-1 rounded bg-rose-950/70 hover:bg-rose-900 border border-rose-800 text-rose-300 text-[11px] transition">
                 ✕
               </button>
@@ -1381,7 +1981,7 @@
       const filterSev = document.getElementById('fwd-filter-sev').value;
 
       if (!name || !host) {
-        alert("Пожалуйста, заполните название и хост/URL назначения.");
+        alert(t('alert_fill_fields'));
         return;
       }
 
@@ -1415,7 +2015,7 @@
         resetEndpointForm();
         loadForwardingEndpoints();
       } catch (e) {
-        alert("Ошибка при сохранении: " + e);
+        alert("Error saving endpoint: " + e);
       }
     }
 
@@ -1433,9 +2033,9 @@
       onForwardTypeChange();
       document.getElementById('endpoint-form-title').innerHTML = `
         <span class="w-2 h-2 rounded-full bg-amber-400"></span>
-        <span>Редактировать точку: ${ep.name}</span>
+        <span>${t('fwd_form_edit_title', { name: ep.name })}</span>
       `;
-      document.getElementById('save-endpoint-btn-text').textContent = "Обновить точку";
+      document.getElementById('save-endpoint-btn-text').textContent = t('btn_update_dest');
       document.getElementById('cancel-edit-endpoint-btn').classList.remove('hidden');
       document.getElementById('fwd-name').scrollIntoView({ behavior: 'smooth' });
     }
@@ -1454,14 +2054,14 @@
 
       document.getElementById('endpoint-form-title').innerHTML = `
         <span class="w-2 h-2 rounded-full bg-emerald-400"></span>
-        <span>Добавить конечную точку назначения</span>
+        <span>${t('fwd_form_add_title')}</span>
       `;
-      document.getElementById('save-endpoint-btn-text').textContent = "Сохранить точку";
+      document.getElementById('save-endpoint-btn-text').textContent = t('btn_save_dest');
       document.getElementById('cancel-edit-endpoint-btn').classList.add('hidden');
     }
 
     async function deleteForwardingEndpoint(id) {
-      if (confirm("Удалить эту точку пересылки?")) {
+      if (confirm(t('fwd_delete_confirm'))) {
         await fetch(`/api/v1/forwarding/endpoints/${id}`, { method: 'DELETE' });
         loadForwardingEndpoints();
       }
@@ -1483,7 +2083,7 @@
       const format = document.getElementById('fwd-format').value;
 
       if (!host) {
-        alert("Укажите хост назначения для тестирования.");
+        alert(t('alert_fill_fields'));
         return;
       }
 
@@ -1503,21 +2103,20 @@
           })
         });
         const data = await res.json();
-        alert(data.message || (data.success ? "Тестовый пакет успешно отправлен" : "Ошибка отправки"));
+        alert(data.message || (data.success ? "Probe packet sent successfully" : "Error sending probe"));
       } catch (e) {
-        alert("Ошибка при тестировании: " + e);
+        alert("Error testing endpoint: " + e);
       }
     }
 
     function renderForwardingRoutingMatrix() {
       const matrix = document.getElementById('device-routing-matrix');
       if (devices.length === 0) {
-        matrix.innerHTML = `<div class="text-xs text-slate-500 text-center py-6">Нет зарегистрированных устройств для построения матрицы.</div>`;
+        matrix.innerHTML = `<div class="text-xs text-slate-500 text-center py-6">${t('routing_empty')}</div>`;
         return;
       }
 
       matrix.innerHTML = devices.map(d => {
-        // Find which endpoints match this device
         const matchingEps = forwardingEndpoints.filter(ep => {
           if (!ep.enabled) return false;
           const matchIp = !ep.filter_source_ip || ep.filter_source_ip === d.ip;
@@ -1535,7 +2134,7 @@
                 <span class="text-emerald-500 text-[10px]">(${e.host}:${e.port})</span>
               </span>
             `).join('')
-          : '<span class="text-slate-500 text-xs italic">Ретрансляция не настроена</span>';
+          : `<span class="text-slate-500 text-xs italic">${t('routing_not_configured')}</span>`;
 
         return `
           <div class="p-3 bg-slate-950 rounded-xl border border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
@@ -1543,14 +2142,14 @@
               <div class="flex items-center gap-2">
                 <span class="font-mono font-bold text-slate-200 text-sm">${d.ip}</span>
                 <span class="text-[10px] px-1.5 py-0.2 rounded font-mono border ${vColor}">${d.vendor_type}</span>
-                <span class="text-slate-400 font-mono text-[11px]">${d.hostname || 'Без имени'}</span>
+                <span class="text-slate-400 font-mono text-[11px]">${d.hostname || t('unknown_host')}</span>
               </div>
               <div class="flex items-center gap-1.5 flex-wrap pt-1">
                 ${endpointsPills}
               </div>
             </div>
             <button onclick="forwardQuickAddForDevice('${d.ip}')" class="px-2.5 py-1 rounded bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 text-xs flex items-center gap-1 transition shrink-0">
-              <span>+ Назначить точку</span>
+              <span>${t('routing_assign_btn')}</span>
             </button>
           </div>
         `;
@@ -1561,8 +2160,101 @@
       switchForwardingTab('endpoints');
       resetEndpointForm();
       document.getElementById('fwd-filter-device').value = ip;
-      document.getElementById('fwd-name').value = `Ретрансляция ${ip}`;
+      document.getElementById('fwd-name').value = `Forwarding ${ip}`;
       document.getElementById('fwd-host').focus();
+    }
+
+    // --- Webhooks Modal & Management ---
+    function openWebhooksModal() {
+      loadWebhooks();
+      document.getElementById('webhooks-modal').classList.remove('hidden');
+    }
+
+    function closeWebhooksModal() {
+      document.getElementById('webhooks-modal').classList.add('hidden');
+    }
+
+    async function loadWebhooks() {
+      const res = await fetch('/api/v1/webhooks');
+      const data = await res.json();
+      const list = document.getElementById('webhooks-list');
+      const rules = data.webhooks || [];
+
+      if (rules.length === 0) {
+        list.innerHTML = `<div class="text-xs text-slate-500 text-center py-4">${t('wh_empty')}</div>`;
+        return;
+      }
+
+      list.innerHTML = rules.map(r => `
+        <div class="p-3 bg-slate-950 rounded-lg border border-slate-800 flex items-center justify-between text-xs">
+          <div>
+            <div class="flex items-center gap-2">
+              <span class="font-bold text-slate-200">${r.name}</span>
+              <span class="text-[10px] px-1.5 py-0.2 rounded font-mono bg-slate-800 text-slate-400">${r.vendor || 'ANY VENDOR'}</span>
+              ${r.max_severity !== null ? `<span class="text-[10px] px-1.5 py-0.2 rounded font-mono bg-orange-950 text-orange-400">Sev ≤ ${r.max_severity}</span>` : ''}
+              ${r.action ? `<span class="text-[10px] px-1.5 py-0.2 rounded font-mono bg-rose-950 text-rose-400">Action: ${r.action}</span>` : ''}
+            </div>
+            <div class="text-[11px] text-slate-400 font-mono truncate max-w-md mt-1">${r.target_url}</div>
+          </div>
+          <div class="flex items-center gap-2">
+            <button onclick="testWebhook('${r.target_url}')" class="px-2 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 text-[11px]">Test</button>
+            <button onclick="deleteWebhookRule(${r.id})" class="px-2 py-1 rounded bg-rose-950/80 hover:bg-rose-900 text-rose-300 text-[11px]">Delete</button>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    async function addWebhookRule() {
+      const name = document.getElementById('wh-name').value.trim();
+      const url = document.getElementById('wh-url').value.trim();
+      const vendor = document.getElementById('wh-vendor').value;
+      const sev = document.getElementById('wh-severity').value;
+      const action = document.getElementById('wh-action').value.trim();
+      const regex = document.getElementById('wh-regex').value.trim();
+
+      if (!name || !url) {
+        alert(t('alert_fill_fields'));
+        return;
+      }
+
+      const payload = {
+        name: name,
+        target_url: url,
+        vendor: vendor || null,
+        max_severity: sev !== "" ? parseInt(sev) : null,
+        action: action || null,
+        filter_regex: regex || null
+      };
+
+      await fetch('/api/v1/webhooks', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+
+      document.getElementById('wh-name').value = '';
+      document.getElementById('wh-url').value = '';
+      document.getElementById('wh-action').value = '';
+      document.getElementById('wh-regex').value = '';
+
+      loadWebhooks();
+    }
+
+    async function deleteWebhookRule(id) {
+      if (confirm(t('wh_delete_confirm'))) {
+        await fetch(`/api/v1/webhooks/${id}`, { method: 'DELETE' });
+        loadWebhooks();
+      }
+    }
+
+    async function testWebhook(url) {
+      const res = await fetch('/api/v1/webhooks/test', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ target_url: url })
+      });
+      const data = await res.json();
+      alert(data.message || data.detail || "Dispatched test payload");
     }
 
     // --- API Reference Modal ---
@@ -1588,6 +2280,23 @@
       initWebSocket();
       fetchDevices();
       loadForwardingEndpoints();
+      loadCurrentLogs();
+      updateUiLanguage(); // Initializes language (default is English)
+
+      const searchInput = document.getElementById('log-search-input');
+      if (searchInput) {
+        searchInput.addEventListener('input', () => {
+          const clearBtn = document.getElementById('clear-search-btn');
+          if (clearBtn) {
+            if (searchInput.value.trim().length > 0) {
+              clearBtn.classList.remove('hidden');
+            } else {
+              clearBtn.classList.add('hidden');
+            }
+          }
+        });
+      }
+
       setInterval(fetchDevices, 10000);
       setInterval(updateTopStats, 5000);
       setInterval(loadForwardingEndpoints, 10000);
