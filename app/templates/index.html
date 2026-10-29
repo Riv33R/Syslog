@@ -1,0 +1,1037 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Syslog Aggregator | Production Network Engine</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50: '#f0fdf4',
+              500: '#22c55e',
+              600: '#16a34a',
+              900: '#14532d',
+            },
+            cisco: '#0284c7',      // Sky-600
+            fortigate: '#ea580c',  // Orange-600
+            linux: '#eab308',      // Yellow-500
+            generic: '#8b5cf6'     // Purple-500
+          },
+          fontFamily: {
+            mono: ['JetBrains Mono', 'Fira Code', 'Consolas', 'monospace']
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    /* Custom scrollbars */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: #0f172a;
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: #334155;
+      border-radius: 3px;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+      background: #475569;
+    }
+
+    .pulse-glow {
+      box-shadow: 0 0 10px rgba(34, 197, 94, 0.4);
+    }
+  </style>
+</head>
+
+<body class="bg-slate-950 text-slate-100 h-screen flex flex-col font-sans overflow-hidden select-none">
+
+  <!-- Top Navbar -->
+  <header
+    class="h-14 border-b border-slate-800 bg-slate-900/90 backdrop-blur px-4 flex items-center justify-between shrink-0 z-20">
+    <div class="flex items-center gap-3">
+      <div
+        class="h-8 w-8 rounded-lg bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400 font-mono font-bold text-sm">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+            d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10">
+          </path>
+        </svg>
+      </div>
+      <div>
+        <h1 class="text-sm font-semibold tracking-wide text-slate-100 flex items-center gap-2">
+          Syslog Aggregator
+          <span
+            class="text-xs px-2 py-0.5 rounded font-mono font-normal bg-slate-800 text-slate-400 border border-slate-700">UDP/TCP
+            514 &amp; 1514</span>
+        </h1>
+      </div>
+    </div>
+
+    <!-- Cluster / Server Status Pill -->
+    <div class="flex items-center gap-4 text-xs font-mono">
+      <div class="hidden md:flex items-center gap-2 bg-slate-800/80 px-3 py-1.5 rounded-lg border border-slate-700/60">
+        <span class="text-slate-400">Devices:</span>
+        <span id="stat-devices-count" class="font-bold text-emerald-400">0</span>
+        <span class="text-slate-600">|</span>
+        <span class="text-slate-400">Online:</span>
+        <span id="stat-devices-online" class="font-bold text-cyan-400">0</span>
+        <span class="text-slate-600">|</span>
+        <span class="text-slate-400">Total Logs:</span>
+        <span id="stat-total-logs" class="font-bold text-amber-400">0</span>
+      </div>
+
+      <div class="flex items-center gap-2">
+        <button onclick="openWebhooksModal()"
+          class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 flex items-center gap-1.5 transition">
+          <svg class="w-3.5 h-3.5 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+          </svg>
+          Webhooks
+        </button>
+
+        <button onclick="openApiModal()"
+          class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 flex items-center gap-1.5 transition">
+          <svg class="w-3.5 h-3.5 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4"></path>
+          </svg>
+          API
+        </button>
+
+        <div id="ws-indicator"
+          class="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-mono bg-emerald-950/80 text-emerald-400 border border-emerald-800/80">
+          <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+          <span>WS LIVE</span>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Body Layout -->
+  <div class="flex flex-1 overflow-hidden">
+
+    <!-- Left Sidebar: Device Management -->
+    <aside class="w-80 border-r border-slate-800 bg-slate-900/60 flex flex-col shrink-0">
+      <!-- Search & Filters -->
+      <div class="p-3 border-b border-slate-800 space-y-2">
+        <div class="relative">
+          <input id="device-search-input" type="text" placeholder="Search IP or hostname..."
+            oninput="renderDeviceList()"
+            class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-1.5 pl-8 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-emerald-500/60 font-mono transition" />
+          <svg class="w-3.5 h-3.5 text-slate-500 absolute left-2.5 top-2.5" fill="none" stroke="currentColor"
+            viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+          </svg>
+        </div>
+
+        <!-- Vendor Category Filter Pills -->
+        <div class="flex items-center gap-1 overflow-x-auto pb-1 text-[11px] font-medium text-slate-400">
+          <button onclick="setVendorFilter('all')"
+            class="vendor-pill px-2.5 py-1 rounded bg-slate-800 text-slate-200 border border-slate-700"
+            data-vendor="all">All</button>
+          <button onclick="setVendorFilter('cisco')"
+            class="vendor-pill px-2.5 py-1 rounded hover:bg-slate-800 border border-transparent"
+            data-vendor="cisco">Cisco</button>
+          <button onclick="setVendorFilter('fortigate')"
+            class="vendor-pill px-2.5 py-1 rounded hover:bg-slate-800 border border-transparent"
+            data-vendor="fortigate">FortiGate</button>
+          <button onclick="setVendorFilter('linux')"
+            class="vendor-pill px-2.5 py-1 rounded hover:bg-slate-800 border border-transparent"
+            data-vendor="linux">Linux</button>
+          <button onclick="setVendorFilter('generic')"
+            class="vendor-pill px-2.5 py-1 rounded hover:bg-slate-800 border border-transparent"
+            data-vendor="generic">Generic</button>
+        </div>
+      </div>
+
+      <!-- Device List Header -->
+      <div
+        class="px-3 py-2 text-[11px] font-semibold tracking-wider text-slate-500 uppercase flex justify-between items-center bg-slate-950/40">
+        <span>Registered Sources</span>
+        <button onclick="fetchDevices()" title="Refresh devices" class="hover:text-slate-300">
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15">
+            </path>
+          </svg>
+        </button>
+      </div>
+
+      <!-- Devices Scroll Container -->
+      <div id="device-list-container" class="flex-1 overflow-y-auto divide-y divide-slate-800/60 p-1.5 space-y-1">
+        <!-- Devices injected dynamically -->
+        <div class="text-xs text-slate-500 text-center py-8">Loading devices...</div>
+      </div>
+
+      <!-- Left Sidebar Footer: Storage Info -->
+      <div
+        class="p-2.5 border-t border-slate-800 bg-slate-950/80 text-[11px] text-slate-400 flex justify-between items-center">
+        <span class="flex items-center gap-1.5">
+          <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+          WAL Isolated Mode
+        </span>
+        <span class="text-slate-500">Retention: {{ retention_days }}d</span>
+      </div>
+    </aside>
+
+    <!-- Center Stage: Console & Logs -->
+    <main class="flex-1 flex flex-col bg-slate-950 overflow-hidden">
+
+      <!-- Active Device Toolbar -->
+      <div
+        class="p-3 border-b border-slate-800 bg-slate-900/40 flex flex-wrap items-center justify-between gap-3 shrink-0">
+        <!-- Selected Device Details -->
+        <div class="flex items-center gap-3">
+          <div id="active-vendor-badge"
+            class="px-2.5 py-1 rounded text-xs font-mono uppercase font-bold bg-slate-800 text-slate-300 border border-slate-700">
+            ALL DEVICES
+          </div>
+          <div>
+            <div class="flex items-center gap-2">
+              <span id="active-device-title" class="text-sm font-semibold font-mono text-slate-200">Global Stream (All
+                Sources)</span>
+              <span id="active-device-db" class="text-[11px] text-slate-500 font-mono hidden md:inline"></span>
+            </div>
+            <div id="active-device-subtitle" class="text-xs text-slate-400 flex items-center gap-2">
+              <span>Streaming combined syslog activity across all isolated databases</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Controls: Live Pause, Auto-scroll, Search, Severity -->
+        <div class="flex items-center gap-2">
+          <!-- Text Search inside Logs -->
+          <div class="relative w-48 sm:w-64">
+            <input id="log-search-input" type="text" placeholder="Filter logs / text..."
+              onkeydown="if(event.key==='Enter') loadCurrentLogs()"
+              class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 pl-7 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-emerald-500 font-mono transition" />
+            <svg class="w-3.5 h-3.5 text-slate-500 absolute left-2 top-2" fill="none" stroke="currentColor"
+              viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+            </svg>
+          </div>
+
+          <!-- Severity Filter Dropdown -->
+          <select id="severity-select" onchange="loadCurrentLogs()"
+            class="bg-slate-900 border border-slate-700 text-slate-300 text-xs rounded-lg px-2 py-1.5 focus:outline-none focus:border-emerald-500 font-mono">
+            <option value="">All Severity</option>
+            <option value="0">0 - Emergency</option>
+            <option value="1">1 - Alert</option>
+            <option value="2">2 - Critical</option>
+            <option value="3">3 - Error</option>
+            <option value="4">4 - Warning</option>
+            <option value="5">5 - Notice</option>
+            <option value="6">6 - Info</option>
+            <option value="7">7 - Debug</option>
+          </select>
+
+          <!-- Auto-scroll checkbox -->
+          <label
+            class="hidden lg:flex items-center gap-1.5 text-xs text-slate-400 cursor-pointer bg-slate-900/80 px-2.5 py-1.5 rounded-lg border border-slate-800">
+            <input type="checkbox" id="autoscroll-toggle" checked
+              class="rounded text-emerald-500 focus:ring-0 bg-slate-800 border-slate-700">
+            <span>Auto-scroll</span>
+          </label>
+
+          <!-- Live Pause / Play button -->
+          <button id="stream-toggle-btn" onclick="toggleStream()"
+            class="px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 text-xs flex items-center gap-1.5 transition">
+            <svg id="stream-btn-icon" class="w-3.5 h-3.5 text-amber-400" fill="currentColor" viewBox="0 0 20 20">
+              <path fill-rule="evenodd"
+                d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zM7 8a1 1 0 012 0v4a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v4a1 1 0 102 0V8a1 1 0 00-1-1z"
+                clip-rule="evenodd"></path>
+            </svg>
+            <span id="stream-btn-text">Pause</span>
+          </button>
+
+          <!-- Clear Console -->
+          <button onclick="clearConsole()" title="Clear view"
+            class="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-400 hover:text-slate-200 transition">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16">
+              </path>
+            </svg>
+          </button>
+
+          <!-- Export Logs Button -->
+          <button onclick="exportCurrentLogs()" title="Export JSON"
+            class="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-400 hover:text-slate-200 transition">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      <!-- Logs Stream Viewport -->
+      <div id="logs-viewport" class="flex-1 overflow-y-auto font-mono text-xs p-2 space-y-1 select-text">
+        <div id="logs-container" class="space-y-1">
+          <!-- Dynamic Log Entries -->
+        </div>
+      </div>
+
+      <!-- Bottom Bar: Status & Count -->
+      <div
+        class="h-8 border-t border-slate-800 bg-slate-900 px-4 flex items-center justify-between text-xs text-slate-400 shrink-0 font-mono">
+        <div class="flex items-center gap-3">
+          <span>Displaying <span id="displayed-count" class="text-slate-200 font-bold">0</span> logs</span>
+          <span class="text-slate-600">•</span>
+          <span id="logs-query-status" class="text-slate-500">Live streaming active</span>
+        </div>
+        <div class="flex items-center gap-2">
+          <span class="text-slate-500">Click any row to inspect parsed JSON & raw syslog</span>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- Modal: Webhook Rules Management -->
+  <div id="webhooks-modal"
+    class="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div
+      class="bg-slate-900 border border-slate-800 rounded-xl max-w-2xl w-full max-h-[90vh] flex flex-col shadow-2xl overflow-hidden">
+      <div class="p-4 border-b border-slate-800 flex justify-between items-center bg-slate-950/60">
+        <div class="flex items-center gap-2">
+          <div
+            class="h-7 w-7 rounded-lg bg-purple-500/10 border border-purple-500/30 flex items-center justify-center text-purple-400 font-mono">
+            ⚡
+          </div>
+          <h2 class="text-sm font-semibold text-slate-100">Webhook Rules & Forwarding</h2>
+        </div>
+        <button onclick="closeWebhooksModal()" class="text-slate-400 hover:text-slate-200">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+          </svg>
+        </button>
+      </div>
+
+      <div class="p-4 overflow-y-auto space-y-4 flex-1">
+        <!-- New Rule Form -->
+        <div class="bg-slate-950 p-3.5 rounded-lg border border-slate-800 space-y-3">
+          <h3 class="text-xs font-semibold text-slate-300 uppercase tracking-wider">Create Forwarding Rule</h3>
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+            <div>
+              <label class="block text-slate-400 mb-1">Rule Name</label>
+              <input id="wh-name" type="text" placeholder="e.g. Cisco Critical Alerts"
+                class="w-full bg-slate-900 border border-slate-700 rounded px-2.5 py-1.5 text-slate-200 font-mono">
+            </div>
+            <div>
+              <label class="block text-slate-400 mb-1">Target URL (POST)</label>
+              <input id="wh-url" type="url" placeholder="https://api.mycorp.com/syslog-alert"
+                class="w-full bg-slate-900 border border-slate-700 rounded px-2.5 py-1.5 text-slate-200 font-mono">
+            </div>
+            <div>
+              <label class="block text-slate-400 mb-1">Vendor Match</label>
+              <select id="wh-vendor"
+                class="w-full bg-slate-900 border border-slate-700 rounded px-2.5 py-1.5 text-slate-200 font-mono">
+                <option value="">Any Vendor</option>
+                <option value="cisco">Cisco</option>
+                <option value="fortigate">FortiGate</option>
+                <option value="linux">Linux</option>
+                <option value="generic">Generic</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-slate-400 mb-1">Max Severity (≤)</label>
+              <select id="wh-severity"
+                class="w-full bg-slate-900 border border-slate-700 rounded px-2.5 py-1.5 text-slate-200 font-mono">
+                <option value="">Any Severity</option>
+                <option value="1">≤ 1 (Emergency, Alert)</option>
+                <option value="2">≤ 2 (Emergency, Alert, Critical)</option>
+                <option value="3">≤ 3 (Emergency, Alert, Crit, Error)</option>
+                <option value="4">≤ 4 (Warning or worse)</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-slate-400 mb-1">FortiGate Action Match</label>
+              <input id="wh-action" type="text" placeholder="e.g. deny or block"
+                class="w-full bg-slate-900 border border-slate-700 rounded px-2.5 py-1.5 text-slate-200 font-mono">
+            </div>
+            <div>
+              <label class="block text-slate-400 mb-1">Regex Filter (Optional)</label>
+              <input id="wh-regex" type="text" placeholder="e.g. OSPF|BGP|LINK"
+                class="w-full bg-slate-900 border border-slate-700 rounded px-2.5 py-1.5 text-slate-200 font-mono">
+            </div>
+          </div>
+          <div class="flex justify-end gap-2 pt-2">
+            <button onclick="addWebhookRule()"
+              class="px-3 py-1.5 rounded bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-medium transition">
+              Save Rule
+            </button>
+          </div>
+        </div>
+
+        <!-- Rules List -->
+        <div>
+          <h3 class="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Active Rules</h3>
+          <div id="webhooks-list" class="space-y-2">
+            <!-- Rules dynamically loaded -->
+            <div class="text-xs text-slate-500 text-center py-4">No webhook rules configured yet.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: API & Ingestion Guide -->
+  <div id="api-modal"
+    class="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div
+      class="bg-slate-900 border border-slate-800 rounded-xl max-w-2xl w-full max-h-[90vh] flex flex-col shadow-2xl overflow-hidden">
+      <div class="p-4 border-b border-slate-800 flex justify-between items-center bg-slate-950/60">
+        <h2 class="text-sm font-semibold text-slate-100 flex items-center gap-2">
+          <span>📡</span> Integration & Ingestion Quick Reference
+        </h2>
+        <button onclick="closeApiModal()" class="text-slate-400 hover:text-slate-200">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+          </svg>
+        </button>
+      </div>
+      <div class="p-4 overflow-y-auto space-y-4 text-xs font-mono text-slate-300">
+        <div>
+          <div class="font-bold text-emerald-400 mb-1">1. Send Syslog over UDP (Port 514):</div>
+          <pre
+            class="bg-slate-950 p-3 rounded border border-slate-800 text-slate-300 overflow-x-auto">echo "&lt;189&gt;%LINK-3-UPDOWN: Interface GigabitEthernet0/1, changed state to down" | nc -u -w1 127.0.0.1 514</pre>
+        </div>
+
+        <div>
+          <div class="font-bold text-amber-400 mb-1">2. Send Syslog over TCP (Port 514):</div>
+          <pre
+            class="bg-slate-950 p-3 rounded border border-slate-800 text-slate-300 overflow-x-auto">echo 'date=2026-10-29 time=11:00:00 devname="FW-01" type="traffic" action="deny" srcip=10.0.0.5 dstip=8.8.8.8 msg="Denied"' | nc -w1 127.0.0.1 514</pre>
+        </div>
+
+        <div>
+          <div class="font-bold text-blue-400 mb-1">3. REST API - Query Device Logs:</div>
+          <pre
+            class="bg-slate-950 p-3 rounded border border-slate-800 text-slate-300 overflow-x-auto">curl -s "http://127.0.0.1:8000/api/v1/devices/10.0.0.1/logs?limit=50&severity=3&q=Gigabit"</pre>
+        </div>
+
+        <div>
+          <div class="font-bold text-purple-400 mb-1">4. Server-Sent Events (SSE) Stream:</div>
+          <pre
+            class="bg-slate-950 p-3 rounded border border-slate-800 text-slate-300 overflow-x-auto">curl -N "http://127.0.0.1:8000/api/v1/devices/10.0.0.1/stream"</pre>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Log Detail / JSON Inspector -->
+  <div id="log-detail-modal"
+    class="fixed inset-0 bg-black/75 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div
+      class="bg-slate-900 border border-slate-800 rounded-xl max-w-3xl w-full max-h-[85vh] flex flex-col shadow-2xl overflow-hidden font-mono text-xs">
+      <div class="p-3.5 border-b border-slate-800 flex justify-between items-center bg-slate-950">
+        <div class="flex items-center gap-2">
+          <span id="modal-sev-badge" class="px-2 py-0.5 rounded text-[10px] font-bold"></span>
+          <span id="modal-vendor-badge" class="px-2 py-0.5 rounded text-[10px] font-bold"></span>
+          <span id="modal-ip-badge" class="text-slate-300 font-bold"></span>
+          <span id="modal-time-badge" class="text-slate-500 text-[11px]"></span>
+        </div>
+        <button onclick="closeDetailModal()" class="text-slate-400 hover:text-slate-200">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+          </svg>
+        </button>
+      </div>
+
+      <div class="p-4 overflow-y-auto space-y-3 flex-1">
+        <!-- Raw Syslog Frame -->
+        <div>
+          <div class="flex justify-between items-center mb-1">
+            <span class="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Raw Syslog Packet</span>
+            <button onclick="copyRawLog()" class="text-[11px] text-emerald-400 hover:underline">Copy Raw</button>
+          </div>
+          <pre id="modal-raw"
+            class="p-3 rounded-lg bg-slate-950 border border-slate-800 text-slate-300 break-all select-all font-mono whitespace-pre-wrap"></pre>
+        </div>
+
+        <!-- Parsed Structured JSON -->
+        <div>
+          <div class="flex justify-between items-center mb-1">
+            <span class="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Parsed JSON Schema</span>
+            <button onclick="copyJsonLog()" class="text-[11px] text-emerald-400 hover:underline">Copy JSON</button>
+          </div>
+          <pre id="modal-json"
+            class="p-3 rounded-lg bg-slate-950 border border-slate-800 text-emerald-300 break-all select-all font-mono whitespace-pre-wrap max-h-72 overflow-y-auto"></pre>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Vanilla JS Engine -->
+  <script>
+    // State
+    let devices = [];
+    let activeVendorFilter = 'all';
+    let selectedDeviceIp = null; // null = Global Stream
+    let isStreamPaused = false;
+    let ws = null;
+    let logsBuffer = [];
+    const MAX_BUFFER_SIZE = 500;
+    let currentModalLog = null;
+
+    // Severity Colors and Labels
+    const SEV_MAP = {
+      0: { label: "EMERG", class: "bg-red-950/80 text-red-300 border-red-700 font-bold" },
+      1: { label: "ALERT", class: "bg-rose-950/80 text-rose-300 border-rose-700 font-bold" },
+      2: { label: "CRIT", class: "bg-red-900/60 text-red-200 border-red-600" },
+      3: { label: "ERROR", class: "bg-orange-950/70 text-orange-300 border-orange-700" },
+      4: { label: "WARN", class: "bg-amber-950/70 text-amber-300 border-amber-600" },
+      5: { label: "NOTICE", class: "bg-blue-950/70 text-blue-300 border-blue-600" },
+      6: { label: "INFO", class: "bg-slate-800 text-slate-300 border-slate-700" },
+      7: { label: "DEBUG", class: "bg-zinc-900 text-zinc-400 border-zinc-800" },
+    };
+
+    const VENDOR_COLORS = {
+      cisco: "bg-sky-950/80 text-sky-300 border-sky-700",
+      fortigate: "bg-orange-950/80 text-orange-300 border-orange-700",
+      linux: "bg-yellow-950/80 text-yellow-300 border-yellow-700",
+      generic: "bg-purple-950/80 text-purple-300 border-purple-700",
+    };
+
+    // --- WebSocket Live Stream Setup ---
+    function initWebSocket() {
+      const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+      const wsUrl = `${protocol}//${window.location.host}/ws/logs`;
+
+      ws = new WebSocket(wsUrl);
+
+      ws.onopen = () => {
+        document.getElementById('ws-indicator').innerHTML = `
+          <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+          <span>WS LIVE</span>
+        `;
+        document.getElementById('ws-indicator').className = "flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-mono bg-emerald-950/80 text-emerald-400 border border-emerald-800/80";
+
+        // Sync current filter
+        if (selectedDeviceIp) {
+          ws.send(JSON.stringify({ action: "filter", ip: selectedDeviceIp }));
+        }
+      };
+
+      ws.onmessage = (event) => {
+        if (isStreamPaused) return;
+
+        try {
+          const item = JSON.parse(event.data);
+          if (item.type === 'info' || item.type === 'pong') return;
+
+          // If a device filter is selected and does not match, ignore
+          if (selectedDeviceIp && item.source_ip !== selectedDeviceIp) return;
+
+          // Check severity filter
+          const sevFilter = document.getElementById('severity-select').value;
+          if (sevFilter !== "" && item.severity !== parseInt(sevFilter)) return;
+
+          // Check text filter
+          const textFilter = document.getElementById('log-search-input').value.trim().toLowerCase();
+          if (textFilter && !JSON.stringify(item).toLowerCase().includes(textFilter)) return;
+
+          appendLogEntry(item, true);
+        } catch (e) {
+          console.error("WS parse error", e);
+        }
+      };
+
+      ws.onclose = () => {
+        document.getElementById('ws-indicator').innerHTML = `
+          <span class="w-2 h-2 rounded-full bg-rose-500"></span>
+          <span>DISCONNECTED</span>
+        `;
+        document.getElementById('ws-indicator').className = "flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-mono bg-rose-950 text-rose-400 border border-rose-800";
+        setTimeout(initWebSocket, 3000);
+      };
+    }
+
+    // --- Device Management ---
+    async function fetchDevices() {
+      try {
+        const res = await fetch('/api/v1/devices');
+        const data = await res.json();
+        devices = data.devices || [];
+        renderDeviceList();
+        updateTopStats();
+      } catch (e) {
+        console.error("Failed to fetch devices", e);
+      }
+    }
+
+    async function updateTopStats() {
+      try {
+        const res = await fetch('/api/v1/stats');
+        const data = await res.json();
+        document.getElementById('stat-devices-count').textContent = data.devices_count || 0;
+        document.getElementById('stat-devices-online').textContent = data.devices_online || 0;
+        document.getElementById('stat-total-logs').textContent = Number(data.total_logs_stored || 0).toLocaleString();
+      } catch (e) { }
+    }
+
+    function setVendorFilter(vendor) {
+      activeVendorFilter = vendor;
+      document.querySelectorAll('.vendor-pill').forEach(btn => {
+        if (btn.dataset.vendor === vendor) {
+          btn.className = "vendor-pill px-2.5 py-1 rounded bg-slate-800 text-slate-200 border border-slate-700 font-medium";
+        } else {
+          btn.className = "vendor-pill px-2.5 py-1 rounded hover:bg-slate-800 border border-transparent text-slate-400";
+        }
+      });
+      renderDeviceList();
+    }
+
+    function renderDeviceList() {
+      const container = document.getElementById('device-list-container');
+      const search = document.getElementById('device-search-input').value.toLowerCase().trim();
+
+      let filtered = devices.filter(d => {
+        const matchesVendor = activeVendorFilter === 'all' || d.vendor_type === activeVendorFilter;
+        const matchesSearch = !search || d.ip.toLowerCase().includes(search) || (d.hostname && d.hostname.toLowerCase().includes(search));
+        return matchesVendor && matchesSearch;
+      });
+
+      let html = '';
+
+      // Add "All Devices" option at top
+      const allSelected = selectedDeviceIp === null;
+      html += `
+        <div onclick="selectDevice(null)" class="p-2.5 rounded-lg cursor-pointer transition flex items-center justify-between border ${allSelected ? 'bg-emerald-950/40 border-emerald-500/60 shadow' : 'bg-slate-900/40 border-slate-800/80 hover:bg-slate-800/50'}">
+          <div class="flex items-center gap-2.5">
+            <div class="w-2.5 h-2.5 rounded-full bg-emerald-400"></div>
+            <div>
+              <div class="text-xs font-semibold text-slate-200">Global Stream</div>
+              <div class="text-[11px] text-slate-500 font-mono">All incoming logs</div>
+            </div>
+          </div>
+          <span class="text-[10px] px-1.5 py-0.5 rounded font-mono bg-slate-800 text-slate-400 border border-slate-700">LIVE</span>
+        </div>
+      `;
+
+      if (filtered.length === 0) {
+        html += `<div class="text-xs text-slate-500 text-center py-6">No matching devices found</div>`;
+      } else {
+        filtered.forEach(d => {
+          const isSelected = selectedDeviceIp === d.ip;
+          const vColor = VENDOR_COLORS[d.vendor_type] || VENDOR_COLORS.generic;
+          const statusDot = d.is_online
+            ? '<span class="w-2 h-2 rounded-full bg-emerald-400 shadow-[0_0_6px_#22c55e]"></span>'
+            : '<span class="w-2 h-2 rounded-full bg-slate-600"></span>';
+
+          html += `
+            <div onclick="selectDevice('${d.ip}')" class="p-2.5 rounded-lg cursor-pointer transition flex items-center justify-between border ${isSelected ? 'bg-emerald-950/40 border-emerald-500/60 shadow' : 'bg-slate-900/40 border-slate-800/80 hover:bg-slate-800/50'}">
+              <div class="flex items-center gap-2.5 overflow-hidden">
+                ${statusDot}
+                <div class="truncate">
+                  <div class="flex items-center gap-1.5">
+                    <span class="text-xs font-mono font-semibold text-slate-200">${d.ip}</span>
+                    <span class="text-[9px] px-1.5 py-0.2 rounded font-mono border ${vColor}">${d.vendor_type}</span>
+                  </div>
+                  <div class="text-[11px] text-slate-400 truncate">${d.hostname || 'Unknown host'}</div>
+                </div>
+              </div>
+              <div class="text-right shrink-0">
+                <span class="text-xs font-mono font-bold text-slate-300">${Number(d.log_count).toLocaleString()}</span>
+                <div class="text-[10px] text-slate-500 font-mono">logs</div>
+              </div>
+            </div>
+          `;
+        });
+      }
+
+      container.innerHTML = html;
+    }
+
+    function selectDevice(ip) {
+      selectedDeviceIp = ip;
+      renderDeviceList();
+
+      if (ip === null) {
+        document.getElementById('active-vendor-badge').textContent = 'GLOBAL';
+        document.getElementById('active-vendor-badge').className = 'px-2.5 py-1 rounded text-xs font-mono uppercase font-bold bg-slate-800 text-slate-300 border border-slate-700';
+        document.getElementById('active-device-title').textContent = 'Global Stream (All Sources)';
+        document.getElementById('active-device-db').textContent = '';
+        document.getElementById('active-device-subtitle').textContent = 'Streaming combined syslog activity across all isolated databases';
+        if (ws && ws.readyState === WebSocket.OPEN) {
+          ws.send(JSON.stringify({ action: 'filter', ip: null }));
+        }
+        loadGlobalRecentLogs();
+      } else {
+        const dev = devices.find(d => d.ip === ip);
+        const vendor = dev ? dev.vendor_type : 'generic';
+        const vColor = VENDOR_COLORS[vendor] || VENDOR_COLORS.generic;
+
+        document.getElementById('active-vendor-badge').textContent = vendor.toUpperCase();
+        document.getElementById('active-vendor-badge').className = `px-2.5 py-1 rounded text-xs font-mono uppercase font-bold border ${vColor}`;
+        document.getElementById('active-device-title').textContent = `${ip} ${dev?.hostname ? `(${dev.hostname})` : ''}`;
+        document.getElementById('active-device-db').textContent = `DB: /data/devices/${ip}.db`;
+        document.getElementById('active-device-subtitle').textContent = `Isolated SQLite database • Total logs: ${dev ? Number(dev.log_count).toLocaleString() : '...'}`;
+
+        if (ws && ws.readyState === WebSocket.OPEN) {
+          ws.send(JSON.stringify({ action: 'filter', ip: ip }));
+        }
+        loadDeviceLogs(ip);
+      }
+    }
+
+    // --- Loading Logs from SQLite DB ---
+    async function loadCurrentLogs() {
+      if (selectedDeviceIp) {
+        loadDeviceLogs(selectedDeviceIp);
+      } else {
+        loadGlobalRecentLogs();
+      }
+    }
+
+    async function loadDeviceLogs(ip) {
+      const sev = document.getElementById('severity-select').value;
+      const q = document.getElementById('log-search-input').value.trim();
+      let url = `/api/v1/devices/${ip}/logs?limit=150`;
+      if (sev !== "") url += `&severity=${sev}`;
+      if (q) url += `&q=${encodeURIComponent(q)}`;
+
+      document.getElementById('logs-query-status').textContent = "Querying isolated SQLite database...";
+
+      try {
+        const res = await fetch(url);
+        const data = await res.json();
+        logsBuffer = data.logs || [];
+        renderLogsBuffer();
+        document.getElementById('logs-query-status').textContent = `Loaded ${logsBuffer.length} logs (matching total: ${data.total})`;
+      } catch (e) {
+        console.error("Failed to load device logs", e);
+      }
+    }
+
+    async function loadGlobalRecentLogs() {
+      // Clear buffer for live global stream
+      logsBuffer = [];
+      renderLogsBuffer();
+      document.getElementById('logs-query-status').textContent = "Live streaming active across all devices";
+    }
+
+    // --- Rendering Log Rows ---
+    function renderLogsBuffer() {
+      const container = document.getElementById('logs-container');
+      container.innerHTML = '';
+      logsBuffer.forEach(log => {
+        container.appendChild(createLogRow(log));
+      });
+      updateLogCountDisplay();
+      checkAutoScroll();
+    }
+
+    function appendLogEntry(log, prepend = false) {
+      if (prepend) {
+        logsBuffer.unshift(log);
+        if (logsBuffer.length > MAX_BUFFER_SIZE) logsBuffer.pop();
+        const container = document.getElementById('logs-container');
+        const row = createLogRow(log);
+        container.insertBefore(row, container.firstChild);
+      } else {
+        logsBuffer.push(log);
+        if (logsBuffer.length > MAX_BUFFER_SIZE) logsBuffer.shift();
+        const container = document.getElementById('logs-container');
+        container.appendChild(createLogRow(log));
+      }
+      updateLogCountDisplay();
+      checkAutoScroll();
+    }
+
+    function createLogRow(item) {
+      const row = document.createElement('div');
+      row.className = "log-row group p-2 rounded bg-slate-900/50 hover:bg-slate-800/80 border border-slate-800/80 hover:border-slate-700 cursor-pointer transition flex flex-col sm:flex-row items-start sm:items-center gap-2";
+
+      const sev = SEV_MAP[item.severity] || { label: `LVL${item.severity}`, class: "bg-slate-800 text-slate-300 border-slate-700" };
+      const vColor = VENDOR_COLORS[item.vendor_type] || VENDOR_COLORS.generic;
+
+      // Smart vendor badge & summary
+      let vendorSpecificBadge = '';
+      let messageContent = item.raw;
+
+      const pData = item.parsed_json || {};
+
+      if (item.vendor_type === 'cisco') {
+        const mne = item.mnemonic || pData.mnemonic || 'CISCO';
+        vendorSpecificBadge = `<span class="px-1.5 py-0.5 rounded text-[10px] font-mono font-bold bg-sky-950 text-sky-400 border border-sky-800">%${mne}</span>`;
+        messageContent = pData.message || item.message || item.raw;
+      } else if (item.vendor_type === 'fortigate') {
+        const action = (pData.action || '').toLowerCase();
+        let actClass = "bg-slate-800 text-slate-300 border-slate-700";
+        if (['deny', 'drop', 'block', 'close'].includes(action)) {
+          actClass = "bg-rose-950 text-rose-300 border-rose-800 font-bold";
+        } else if (['accept', 'allow', 'pass'].includes(action)) {
+          actClass = "bg-emerald-950 text-emerald-300 border-emerald-800 font-bold";
+        }
+        const trafficInfo = pData.srcip ? `${pData.srcip}${pData.srcport ? ':' + pData.srcport : ''} &rarr; ${pData.dstip}${pData.dstport ? ':' + pData.dstport : ''}` : '';
+        vendorSpecificBadge = `
+          <span class="px-1.5 py-0.5 rounded text-[10px] font-mono border ${actClass}">${(action || 'TRAFFIC').toUpperCase()}</span>
+          ${trafficInfo ? `<span class="text-slate-400 text-[11px] font-mono">${trafficInfo}</span>` : ''}
+        `;
+        messageContent = pData.msg || item.message || item.raw;
+      } else if (item.vendor_type === 'linux') {
+        const app = pData.app || item.tag || 'linux';
+        const pid = pData.pid ? `[${pData.pid}]` : '';
+        vendorSpecificBadge = `<span class="px-1.5 py-0.5 rounded text-[10px] font-mono bg-amber-950 text-amber-300 border border-amber-800">${app}${pid}</span>`;
+        messageContent = pData.message || item.message || item.raw;
+      } else {
+        if (item.tag) {
+          vendorSpecificBadge = `<span class="px-1.5 py-0.5 rounded text-[10px] font-mono bg-purple-950 text-purple-300 border border-purple-800">${item.tag}</span>`;
+        }
+        messageContent = item.message || item.raw;
+      }
+
+      // Format timestamp
+      const timeStr = item.timestamp ? item.timestamp.replace('T', ' ').substring(11, 23) : '--:--:--';
+
+      row.innerHTML = `
+        <div class="flex items-center gap-1.5 shrink-0">
+          <span class="text-slate-500 text-[11px]">${timeStr}</span>
+          <span class="px-1.5 py-0.5 rounded text-[10px] font-mono border ${sev.class}">${sev.label}</span>
+          <span class="px-1.5 py-0.5 rounded text-[10px] font-mono border ${vColor}">${item.source_ip}</span>
+        </div>
+        <div class="flex items-center gap-1.5 shrink-0">
+          ${vendorSpecificBadge}
+        </div>
+        <div class="text-slate-200 truncate flex-1 hover:text-white" title="${escapeHtml(messageContent)}">
+          ${highlightKeywords(messageContent)}
+        </div>
+      `;
+
+      row.onclick = () => openDetailModal(item);
+      return row;
+    }
+
+    function highlightKeywords(str) {
+      if (!str) return '';
+      return escapeHtml(str)
+        .replace(/(down|failure|failed|drop|deny|block|error|critical)/gi, '<span class="text-rose-400 font-bold">$1</span>')
+        .replace(/(up|accept|allow|success|passed|connected)/gi, '<span class="text-emerald-400 font-bold">$1</span>')
+        .replace(/(GigabitEthernet\S+|Ethernet\S+|FastEthernet\S+|eth\d+|port\d+)/gi, '<span class="text-cyan-400 underline decoration-cyan-700">$1</span>');
+    }
+
+    function escapeHtml(text) {
+      if (!text) return '';
+      return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+    }
+
+    function checkAutoScroll() {
+      const toggle = document.getElementById('autoscroll-toggle');
+      if (toggle && toggle.checked) {
+        const viewport = document.getElementById('logs-viewport');
+        viewport.scrollTop = 0; // Since latest logs are prepended to top
+      }
+    }
+
+    function updateLogCountDisplay() {
+      document.getElementById('displayed-count').textContent = logsBuffer.length;
+    }
+
+    function clearConsole() {
+      logsBuffer = [];
+      renderLogsBuffer();
+    }
+
+    function toggleStream() {
+      isStreamPaused = !isStreamPaused;
+      const btn = document.getElementById('stream-toggle-btn');
+      const text = document.getElementById('stream-btn-text');
+      const icon = document.getElementById('stream-btn-icon');
+
+      if (isStreamPaused) {
+        text.textContent = "Resume";
+        btn.className = "px-2.5 py-1.5 rounded-lg bg-emerald-950 hover:bg-emerald-900 border border-emerald-700 text-emerald-300 text-xs flex items-center gap-1.5 transition";
+        icon.innerHTML = `<path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clip-rule="evenodd"></path>`;
+      } else {
+        text.textContent = "Pause";
+        btn.className = "px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 text-xs flex items-center gap-1.5 transition";
+        icon.innerHTML = `<path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zM7 8a1 1 0 012 0v4a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v4a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd"></path>`;
+      }
+    }
+
+    function exportCurrentLogs() {
+      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(logsBuffer, null, 2));
+      const downloadAnchor = document.createElement('a');
+      downloadAnchor.setAttribute("href", dataStr);
+      downloadAnchor.setAttribute("download", `syslog_export_${selectedDeviceIp || 'global'}_${new Date().toISOString()}.json`);
+      document.body.appendChild(downloadAnchor);
+      downloadAnchor.click();
+      downloadAnchor.remove();
+    }
+
+    // --- Detail Modal ---
+    function openDetailModal(item) {
+      currentModalLog = item;
+      const sev = SEV_MAP[item.severity] || { label: `LVL${item.severity}`, class: "bg-slate-800 text-slate-300" };
+      const vColor = VENDOR_COLORS[item.vendor_type] || VENDOR_COLORS.generic;
+
+      document.getElementById('modal-sev-badge').textContent = sev.label;
+      document.getElementById('modal-sev-badge').className = `px-2 py-0.5 rounded text-[10px] font-bold border ${sev.class}`;
+
+      document.getElementById('modal-vendor-badge').textContent = (item.vendor_type || 'generic').toUpperCase();
+      document.getElementById('modal-vendor-badge').className = `px-2 py-0.5 rounded text-[10px] font-bold border ${vColor}`;
+
+      document.getElementById('modal-ip-badge').textContent = item.source_ip;
+      document.getElementById('modal-time-badge').textContent = item.timestamp;
+
+      document.getElementById('modal-raw').textContent = item.raw;
+      document.getElementById('modal-json').textContent = JSON.stringify(item.parsed_json, null, 2);
+
+      document.getElementById('log-detail-modal').classList.remove('hidden');
+    }
+
+    function closeDetailModal() {
+      document.getElementById('log-detail-modal').classList.add('hidden');
+      currentModalLog = null;
+    }
+
+    function copyRawLog() {
+      if (currentModalLog) {
+        navigator.clipboard.writeText(currentModalLog.raw);
+      }
+    }
+
+    function copyJsonLog() {
+      if (currentModalLog) {
+        navigator.clipboard.writeText(JSON.stringify(currentModalLog.parsed_json, null, 2));
+      }
+    }
+
+    // --- Webhooks Modal & Management ---
+    function openWebhooksModal() {
+      loadWebhooks();
+      document.getElementById('webhooks-modal').classList.remove('hidden');
+    }
+
+    function closeWebhooksModal() {
+      document.getElementById('webhooks-modal').classList.add('hidden');
+    }
+
+    async function loadWebhooks() {
+      const res = await fetch('/api/v1/webhooks');
+      const data = await res.json();
+      const list = document.getElementById('webhooks-list');
+      const rules = data.webhooks || [];
+
+      if (rules.length === 0) {
+        list.innerHTML = `<div class="text-xs text-slate-500 text-center py-4">No webhook rules configured yet.</div>`;
+        return;
+      }
+
+      list.innerHTML = rules.map(r => `
+        <div class="p-3 bg-slate-950 rounded-lg border border-slate-800 flex items-center justify-between text-xs">
+          <div>
+            <div class="flex items-center gap-2">
+              <span class="font-bold text-slate-200">${r.name}</span>
+              <span class="text-[10px] px-1.5 py-0.2 rounded font-mono bg-slate-800 text-slate-400">${r.vendor || 'ANY VENDOR'}</span>
+              ${r.max_severity !== null ? `<span class="text-[10px] px-1.5 py-0.2 rounded font-mono bg-orange-950 text-orange-400">Sev ≤ ${r.max_severity}</span>` : ''}
+              ${r.action ? `<span class="text-[10px] px-1.5 py-0.2 rounded font-mono bg-rose-950 text-rose-400">Action: ${r.action}</span>` : ''}
+            </div>
+            <div class="text-[11px] text-slate-400 font-mono truncate max-w-md mt-1">${r.target_url}</div>
+          </div>
+          <div class="flex items-center gap-2">
+            <button onclick="testWebhook('${r.target_url}')" class="px-2 py-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 text-[11px]">Test</button>
+            <button onclick="deleteWebhookRule(${r.id})" class="px-2 py-1 rounded bg-rose-950/80 hover:bg-rose-900 text-rose-300 text-[11px]">Delete</button>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    async function addWebhookRule() {
+      const name = document.getElementById('wh-name').value.trim();
+      const url = document.getElementById('wh-url').value.trim();
+      const vendor = document.getElementById('wh-vendor').value;
+      const sev = document.getElementById('wh-severity').value;
+      const action = document.getElementById('wh-action').value.trim();
+      const regex = document.getElementById('wh-regex').value.trim();
+
+      if (!name || !url) {
+        alert("Please specify rule name and target URL");
+        return;
+      }
+
+      const payload = {
+        name: name,
+        target_url: url,
+        vendor: vendor || null,
+        max_severity: sev !== "" ? parseInt(sev) : null,
+        action: action || null,
+        filter_regex: regex || null
+      };
+
+      await fetch('/api/v1/webhooks', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+
+      // Clear inputs
+      document.getElementById('wh-name').value = '';
+      document.getElementById('wh-url').value = '';
+      document.getElementById('wh-action').value = '';
+      document.getElementById('wh-regex').value = '';
+
+      loadWebhooks();
+    }
+
+    async function deleteWebhookRule(id) {
+      if (confirm("Delete this webhook rule?")) {
+        await fetch(`/api/v1/webhooks/${id}`, { method: 'DELETE' });
+        loadWebhooks();
+      }
+    }
+
+    async function testWebhook(url) {
+      const res = await fetch('/api/v1/webhooks/test', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ target_url: url })
+      });
+      const data = await res.json();
+      alert(data.message || data.detail || "Dispatched test payload");
+    }
+
+    // --- API Reference Modal ---
+    function openApiModal() {
+      document.getElementById('api-modal').classList.remove('hidden');
+    }
+    function closeApiModal() {
+      document.getElementById('api-modal').classList.add('hidden');
+    }
+
+    // Close modals on Escape key
+    window.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        closeDetailModal();
+        closeWebhooksModal();
+        closeApiModal();
+      }
+    });
+
+    // Initialization
+    window.addEventListener('DOMContentLoaded', () => {
+      initWebSocket();
+      fetchDevices();
+      setInterval(fetchDevices, 10000);
+      setInterval(updateTopStats, 5000);
+    });
+  </script>
+</body>
+
+</html>

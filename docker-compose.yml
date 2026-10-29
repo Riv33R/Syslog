@@ -1,0 +1,38 @@
+version: "3.8"
+
+services:
+  syslog-aggregator:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: syslog_aggregator
+    restart: unless-stopped
+    ports:
+      # Standard Syslog ports (for network switches, firewalls, appliances)
+      - "514:514/udp"
+      - "514:514/tcp"
+      # Secondary / unprivileged Syslog ports
+      - "1514:1514/udp"
+      - "1514:1514/tcp"
+      # Modern Web UI & REST API / WebSocket
+      - "8000:8000"
+    volumes:
+      # Persistent storage: per-device SQLite WAL databases and central registry
+      - ./syslog_data:/data
+    environment:
+      - DATA_DIR=/data
+      - SYSLOG_HOST=0.0.0.0
+      - SYSLOG_PORT=514
+      - SYSLOG_PORTS=514,1514
+      - WEB_HOST=0.0.0.0
+      - WEB_PORT=8000
+      - RETENTION_DAYS=14
+      - CLEANUP_INTERVAL_HOURS=1
+      - BATCH_SIZE=100
+      - BATCH_TIMEOUT_SEC=0.25
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8000/api/v1/stats || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
