@@ -107,7 +107,7 @@ docker compose up -d --build
 docker compose logs -f syslog-aggregator
 ```
 
-- **Веб-интерфейс:** [http://localhost:8000](http://localhost:8000)
+- **Веб-интерфейс:** [http://localhost:8321](http://localhost:8321)
 - **Syslog UDP/TCP порты:** `514` (стандартный IANA) и `1514` (вспомогательный)
 
 ### Вариант 2: Локальный запуск (без Docker)
@@ -117,7 +117,7 @@ docker compose logs -f syslog-aggregator
 pip install -r requirements.txt
 
 # Запуск приложения
-python -m uvicorn app.main:app --host 0.0.0.0 --port 8000
+python -m uvicorn app.main:app --host 0.0.0.0 --port 8321
 ```
 
 ---
@@ -172,7 +172,7 @@ logger -n 127.0.0.1 -P 514 -d -p auth.info "sshd[24512]: Failed password for inv
 
 ### Пример запроса архивных логов через cURL:
 ```bash
-curl -s "http://127.0.0.1:8000/api/v1/devices/192.168.1.1/logs?limit=50&severity=3&q=Gigabit" | jq
+curl -s "http://127.0.0.1:8321/api/v1/devices/192.168.1.1/logs?limit=50&severity=3&q=Gigabit" | jq
 ```
 
 ---

@@ -5,9 +5,10 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     DATA_DIR=/data \
     SYSLOG_HOST=0.0.0.0 \
-    SYSLOG_PORT=1514 \
+    SYSLOG_PORT=514 \
+    SYSLOG_PORTS=514,1514 \
     WEB_HOST=0.0.0.0 \
-    WEB_PORT=8000 \
+    WEB_PORT=8321 \
     RETENTION_DAYS=14
 
 WORKDIR /app
@@ -30,10 +31,10 @@ RUN mkdir -p /data/devices
 # Expose ports:
 # 514/udp & 514/tcp - Standard Syslog
 # 1514/udp & 1514/tcp - Alternative / Unprivileged Syslog
-# 8000/tcp - Web UI & REST API
-EXPOSE 514/udp 514/tcp 1514/udp 1514/tcp 8000/tcp
+# 8321/tcp - Web UI & REST API
+EXPOSE 514/udp 514/tcp 1514/udp 1514/tcp 8321/tcp
 
 VOLUME ["/data"]
 
 # Run Uvicorn ASGI server
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8321"]

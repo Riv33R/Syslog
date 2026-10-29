@@ -18,7 +18,7 @@ SYSLOG_PORTS_STR = os.getenv("SYSLOG_PORTS", "514,1514")
 SYSLOG_PORTS = list(dict.fromkeys([int(p.strip()) for p in SYSLOG_PORTS_STR.split(",") if p.strip()] + [SYSLOG_PORT]))
 
 WEB_HOST = os.getenv("WEB_HOST", "0.0.0.0")
-WEB_PORT = int(os.getenv("WEB_PORT", "8000"))
+WEB_PORT = int(os.getenv("WEB_PORT", "8321"))
 
 # Retention
 RETENTION_DAYS = int(os.getenv("RETENTION_DAYS", "14"))
