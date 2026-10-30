@@ -18,10 +18,10 @@ services:
       - "8321:8321"
     volumes:
       # Persistent storage: per-device SQLite WAL databases, central registry, and settings.
-      # Named volume guarantees that 'git pull' or image rebuilds will NEVER overwrite live settings or logs.
-      - syslog_data:/data
-      # Alternatively, you can use host bind mount if preferred (safe since syslog_data/ is in .gitignore):
-      # - ./syslog_data:/data
+      # Uses host directory ./syslog_data (safe & persistent since syslog_data/ is in .gitignore, git will NEVER touch it)
+      - ./syslog_data:/data
+      # Alternatively, a Docker named volume can also be used:
+      # - syslog_data:/data
     environment:
       - TZ=Europe/Chisinau
       - APP_TIMEZONE=Europe/Chisinau
@@ -41,8 +41,3 @@ services:
       timeout: 5s
       retries: 3
       start_period: 10s
-
-volumes:
-  # Isolated persistent Docker storage volume
-  syslog_data:
-    driver: local
