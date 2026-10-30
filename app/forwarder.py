@@ -1,5 +1,4 @@
 import re
-import json
 import socket
 import logging
 import asyncio
@@ -340,6 +339,10 @@ def matches_raw_endpoint(source_ip: str, raw_text: str, ep: Dict[str, Any]) -> b
     # Vendor filter cannot be matched pre-parse unless it is empty or 'all'
     filter_vendor = ep.get("filter_vendor")
     if filter_vendor and filter_vendor.strip() and filter_vendor.lower() != "all":
+        return False
+
+    # Endpoints requesting normalized JSON format require parsing and run post-parsing
+    if ep.get("forward_format") == "json":
         return False
 
     # 1. Source IP Filter

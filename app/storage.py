@@ -1,9 +1,8 @@
-import os
 import re
 import json
 import logging
 import asyncio
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timedelta
 from pathlib import Path
 from typing import List, Dict, Any, Optional, Tuple
 import aiosqlite
@@ -144,9 +143,43 @@ async def ensure_device_db(ip: str) -> Path:
         logger.info("Initialized isolated DB for device %s at %s", ip, db_path)
     return db_path
 
+async def _insert_single_device_logs(ip: str, items: List[Dict[str, Any]]):
+    """Inserts batch items into a specific device database."""
+    db_path = await ensure_device_db(ip)
+    rows_to_insert = [
+        (
+            it["timestamp"],
+            it["source_ip"],
+            it["vendor_type"],
+            it["severity"],
+            it["facility"],
+            it.get("tag"),
+            it.get("mnemonic"),
+            it["raw"],
+            json.dumps(it["parsed_json"], ensure_ascii=False)
+        )
+        for it in items
+    ]
+
+    try:
+        async with aiosqlite.connect(db_path) as db:
+            await db.executemany(
+                """
+                INSERT INTO logs (timestamp, source_ip, vendor_type, severity, facility, tag, mnemonic, raw, parsed_json)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                rows_to_insert
+            )
+            await db.commit()
+    except Exception as e:
+        logger.error("Failed to insert logs into %s: %s", db_path, e, exc_info=True)
+
 async def insert_logs_batch(batch: List[Dict[str, Any]]):
     """
-    Batch inserts parsed logs into per-device databases and updates central registry.
+    High-throughput batch insertion:
+    1. Groups logs by source_ip.
+    2. Concurrently inserts rows into each isolated per-device database using asyncio.gather.
+    3. Updates registry device records (hostname, vendor, log count, last_seen).
     """
     if not batch:
         return
@@ -159,38 +192,11 @@ async def insert_logs_batch(batch: List[Dict[str, Any]]):
 
     now_iso = datetime.now(get_app_timezone()).isoformat()
 
-    # Insert into device DBs
-    for ip, items in grouped.items():
-        db_path = await ensure_device_db(ip)
-        rows_to_insert = [
-            (
-                it["timestamp"],
-                it["source_ip"],
-                it["vendor_type"],
-                it["severity"],
-                it["facility"],
-                it.get("tag"),
-                it.get("mnemonic"),
-                it["raw"],
-                json.dumps(it["parsed_json"], ensure_ascii=False)
-            )
-            for it in items
-        ]
+    # 1. Concurrent insert into per-device DBs (zero lock contention across devices)
+    insert_tasks = [_insert_single_device_logs(ip, items) for ip, items in grouped.items()]
+    await asyncio.gather(*insert_tasks)
 
-        try:
-            async with aiosqlite.connect(db_path) as db:
-                await db.executemany(
-                    """
-                    INSERT INTO logs (timestamp, source_ip, vendor_type, severity, facility, tag, mnemonic, raw, parsed_json)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-                    """,
-                    rows_to_insert
-                )
-                await db.commit()
-        except Exception as e:
-            logger.error("Failed to insert logs into %s: %s", db_path, e, exc_info=True)
-
-    # Update Registry DB
+    # 2. Update Registry DB
     try:
         async with aiosqlite.connect(REGISTRY_DB_PATH) as reg_db:
             for ip, items in grouped.items():
@@ -214,7 +220,6 @@ async def insert_logs_batch(batch: List[Dict[str, Any]]):
                     )
                 else:
                     curr_host, curr_vendor = row
-                    # Update fields if more specific info arrives
                     new_host = hostname if (hostname and (not curr_host or curr_host == ip)) else curr_host
                     new_vendor = vendor if (curr_vendor == "generic" and vendor != "generic") else curr_vendor
 
@@ -245,20 +250,20 @@ async def get_all_devices() -> List[Dict[str, Any]]:
             async with db.execute("SELECT * FROM devices ORDER BY last_seen DESC") as cursor:
                 async for row in cursor:
                     d = dict(row)
-                    # Check online status
                     try:
                         last_seen_dt = datetime.fromisoformat(d["last_seen"])
-                        d["is_online"] = (now - last_seen_dt) < online_threshold
+                        if last_seen_dt.tzinfo is None:
+                            last_seen_dt = last_seen_dt.replace(tzinfo=get_app_timezone())
+                        d["is_online"] = (now - last_seen_dt) <= online_threshold
                     except Exception:
                         d["is_online"] = False
                     devices.append(d)
     except Exception as e:
-        logger.error("Error fetching devices: %s", e)
-
+        logger.error("Error fetching devices from registry: %s", e)
     return devices
 
 async def get_device_info(ip: str) -> Optional[Dict[str, Any]]:
-    """Fetches single device info from registry."""
+    """Returns metadata for a specific device."""
     try:
         async with aiosqlite.connect(REGISTRY_DB_PATH) as db:
             db.row_factory = aiosqlite.Row
@@ -269,6 +274,56 @@ async def get_device_info(ip: str) -> Optional[Dict[str, Any]]:
     except Exception as e:
         logger.error("Error fetching device %s: %s", ip, e)
     return None
+
+async def delete_device(ip: str) -> bool:
+    """
+    Removes a device from registry.db and permanently deletes its isolated SQLite database files.
+    """
+    db_path = get_device_db_path(ip)
+    deleted_from_reg = False
+
+    try:
+        async with aiosqlite.connect(REGISTRY_DB_PATH) as db:
+            cursor = await db.execute("DELETE FROM devices WHERE ip = ?", (ip,))
+            await db.commit()
+            deleted_from_reg = cursor.rowcount > 0
+    except Exception as e:
+        logger.error("Error deleting device %s from registry: %s", ip, e)
+
+    # Delete physical files: .db, -wal, -shm
+    for suffix in ["", "-wal", "-shm"]:
+        target_file = db_path.with_name(db_path.name + suffix if suffix else db_path.name)
+        if target_file.exists():
+            try:
+                target_file.unlink()
+            except Exception as e:
+                logger.warning("Could not delete file %s: %s", target_file, e)
+
+    _INITIALIZED_DBS.discard(db_path)
+    logger.info("Successfully deleted device %s and its storage", ip)
+    return deleted_from_reg or not db_path.exists()
+
+async def purge_synthetic_test_devices() -> List[str]:
+    """
+    Purges synthetic test devices (10.0.0.x, 192.168.1.1x, 127.0.0.1) from databases.
+    """
+    devices = await get_all_devices()
+    purged: List[str] = []
+
+    for d in devices:
+        ip = d["ip"]
+        is_test = (
+            ip.startswith("10.0.0.") or
+            ip.startswith("10.100.") or
+            (ip.startswith("192.168.1.") and any(ip == f"192.168.1.{n}" for n in range(10, 20))) or
+            ip == "127.0.0.1"
+        )
+        if is_test:
+            await delete_device(ip)
+            purged.append(ip)
+
+    logger.info("Purged %d synthetic test devices: %s", len(purged), purged)
+    return purged
 
 async def query_device_logs(
     ip: str,
@@ -378,7 +433,7 @@ async def query_all_devices_logs(
     tag: Optional[str] = None,
 ) -> Tuple[List[Dict[str, Any]], int]:
     """
-    Queries logs across all per-device isolated databases.
+    High-performance cross-device query using parallel asyncio.gather across all per-device DBs.
     Aggregates results matching filters, sorted by timestamp descending.
     """
     if not DEVICES_DIR.exists():
@@ -388,16 +443,11 @@ async def query_all_devices_logs(
     if not db_files:
         return [], 0
 
-    aggregated_logs: List[Dict[str, Any]] = []
-    total_count = 0
-
-    # Query from each device DB with a limit high enough to ensure accurate top-N sorting
     per_db_fetch_limit = offset + limit
 
-    for db_file in db_files:
-        ip = db_file.stem
-        dev_logs, dev_total = await query_device_logs(
-            ip=ip,
+    tasks = [
+        query_device_logs(
+            ip=db_file.stem,
             limit=per_db_fetch_limit,
             offset=0,
             severity=severity,
@@ -409,8 +459,21 @@ async def query_all_devices_logs(
             end_time=end_time,
             tag=tag,
         )
-        total_count += dev_total
-        aggregated_logs.extend(dev_logs)
+        for db_file in db_files
+    ]
+
+    results = await asyncio.gather(*tasks, return_exceptions=True)
+
+    aggregated_logs: List[Dict[str, Any]] = []
+    total_count = 0
+
+    for res in results:
+        if isinstance(res, tuple):
+            dev_logs, dev_total = res
+            total_count += dev_total
+            aggregated_logs.extend(dev_logs)
+        elif isinstance(res, Exception):
+            logger.error("Error querying device log partition: %s", res)
 
     # Sort aggregated logs by timestamp DESC, id DESC
     aggregated_logs.sort(key=lambda x: (x.get("timestamp", ""), x.get("id", 0)), reverse=True)
@@ -462,7 +525,6 @@ async def cleanup_retention_worker(retention_days: int = RETENTION_DAYS):
             logger.info("Retention cleanup completed successfully.")
     except Exception as e:
         logger.error("Failed to update registry log counts after retention cleanup: %s", e)
-
 
 # --- Settings & Persistence Management ---
 

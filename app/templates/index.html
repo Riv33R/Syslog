@@ -301,22 +301,25 @@
         </div>
       </div>
 
-      <!-- Essential Filters Toolbar (Row 2: Search, Severity, Facility, Vendor, Time, Limit, Actions) -->
+      <!-- Essential Filters Toolbar (Row 2: Search, Severity, Vendor, Time, Filters Toggle, Actions) -->
       <div class="p-2 px-3 border-b border-slate-800 bg-slate-900/40 flex flex-wrap items-center gap-2 shrink-0 text-xs">
-        <!-- Search Input with Clear Button -->
-        <div class="relative flex-1 min-w-[180px] sm:min-w-[240px]">
+        <!-- Search Input with Clear Button and Hotkey Pill -->
+        <div class="relative flex-1 min-w-[200px] sm:min-w-[260px]">
           <input id="log-search-input" type="text" placeholder="Search message, tag, raw, IP..."
             data-i18n-placeholder="search_logs_ph"
             onkeydown="if(event.key==='Enter') loadCurrentLogs()"
-            class="w-full bg-slate-950 border border-slate-700/80 rounded-lg px-2.5 py-1.5 pl-7 pr-7 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-emerald-500 font-mono transition" />
+            class="w-full bg-slate-950 border border-slate-700/80 rounded-lg px-2.5 py-1.5 pl-7 pr-12 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-emerald-500 font-mono transition" />
           <svg class="w-3.5 h-3.5 text-slate-500 absolute left-2 top-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
           </svg>
-          <button id="clear-search-btn" onclick="clearSearchInput()" class="hidden absolute right-2 top-1.5 text-slate-500 hover:text-slate-300">
-            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-            </svg>
-          </button>
+          <div class="absolute right-2 top-1.5 flex items-center gap-1">
+            <button id="clear-search-btn" onclick="clearSearchInput()" class="hidden text-slate-500 hover:text-slate-300">
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+              </svg>
+            </button>
+            <span class="hidden sm:inline-block px-1 py-0.2 rounded text-[10px] font-mono bg-slate-800/80 text-slate-400 border border-slate-700 select-none pointer-events-none">⏎</span>
+          </div>
         </div>
 
         <!-- Severity Filter -->
@@ -333,26 +336,6 @@
           <option value="5" data-i18n="sev_5">5 - Notice</option>
           <option value="6" data-i18n="sev_6">6 - Info</option>
           <option value="7" data-i18n="sev_7">7 - Debug</option>
-        </select>
-
-        <!-- Facility Filter -->
-        <select id="facility-select" onchange="loadCurrentLogs()"
-          class="bg-slate-950 border border-slate-700/80 text-slate-300 text-xs rounded-lg px-2 py-1.5 focus:outline-none focus:border-emerald-500 font-mono">
-          <option value="" data-i18n="fac_all">All Facilities</option>
-          <option value="0" data-i18n="fac_0">0 - kern (Kernel)</option>
-          <option value="1" data-i18n="fac_1">1 - user (User)</option>
-          <option value="3" data-i18n="fac_3">3 - daemon (Daemons)</option>
-          <option value="4" data-i18n="fac_4">4 - auth (Security)</option>
-          <option value="5" data-i18n="fac_5">5 - syslog (Syslog)</option>
-          <option value="10" data-i18n="fac_10">10 - authpriv (Priv Auth)</option>
-          <option value="16" data-i18n="fac_16">16 - local0 (Network)</option>
-          <option value="17" data-i18n="fac_17">17 - local1</option>
-          <option value="18" data-i18n="fac_18">18 - local2</option>
-          <option value="19" data-i18n="fac_19">19 - local3</option>
-          <option value="20" data-i18n="fac_20">20 - local4</option>
-          <option value="21" data-i18n="fac_21">21 - local5</option>
-          <option value="22" data-i18n="fac_22">22 - local6</option>
-          <option value="23" data-i18n="fac_23">23 - local7 (Network)</option>
         </select>
 
         <!-- Vendor Filter -->
@@ -377,23 +360,15 @@
           <option value="custom" data-i18n="time_custom">Custom Range...</option>
         </select>
 
-        <!-- Custom Date Range Inputs (collapsible) -->
-        <div id="custom-time-container" class="hidden items-center gap-1 bg-slate-950 px-2 py-1 rounded-lg border border-slate-700">
-          <span class="text-[11px] text-slate-500" data-i18n="time_from_lbl">From:</span>
-          <input type="datetime-local" id="time-from" class="bg-transparent text-slate-200 text-xs focus:outline-none font-mono">
-          <span class="text-[11px] text-slate-500" data-i18n="time_to_lbl">To:</span>
-          <input type="datetime-local" id="time-to" class="bg-transparent text-slate-200 text-xs focus:outline-none font-mono">
-        </div>
-
-        <!-- Limit Selector -->
-        <select id="limit-select" onchange="loadCurrentLogs()"
-          class="bg-slate-950 border border-slate-700/80 text-slate-300 text-xs rounded-lg px-2 py-1.5 focus:outline-none focus:border-emerald-500 font-mono">
-          <option value="50">50</option>
-          <option value="100" selected>100</option>
-          <option value="250">250</option>
-          <option value="500">500</option>
-          <option value="1000">1000</option>
-        </select>
+        <!-- Toggle Advanced Filters Drawer Button -->
+        <button id="toggle-advanced-filters-btn" onclick="toggleAdvancedFilters()" title="More filters (Facility, Limit, Custom dates)"
+          class="px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 hover:text-slate-100 text-xs flex items-center gap-1.5 transition font-mono">
+          <svg class="w-3.5 h-3.5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"></path>
+          </svg>
+          <span data-i18n="btn_more_filters">Filters</span>
+          <span id="adv-filter-indicator" class="hidden w-2 h-2 rounded-full bg-emerald-400"></span>
+        </button>
 
         <!-- Apply Button -->
         <button onclick="loadCurrentLogs()"
@@ -412,6 +387,51 @@
           </svg>
           <span data-i18n="filter_reset">Reset</span>
         </button>
+      </div>
+
+      <!-- Collapsible Advanced Filters Drawer (Row 2b) -->
+      <div id="advanced-filters-drawer" class="hidden px-3 py-2 border-b border-slate-800 bg-slate-900/70 flex flex-wrap items-center gap-3 shrink-0 text-xs transition-all duration-200">
+        <div class="flex items-center gap-1.5">
+          <span class="text-slate-400 font-mono text-[11px]" data-i18n="fac_label">Facility:</span>
+          <select id="facility-select" onchange="loadCurrentLogs(); updateAdvIndicator();"
+            class="bg-slate-950 border border-slate-700/80 text-slate-300 text-xs rounded-lg px-2 py-1.5 focus:outline-none focus:border-emerald-500 font-mono">
+            <option value="" data-i18n="fac_all">All Facilities</option>
+            <option value="0" data-i18n="fac_0">0 - kern (Kernel)</option>
+            <option value="1" data-i18n="fac_1">1 - user (User)</option>
+            <option value="3" data-i18n="fac_3">3 - daemon (Daemons)</option>
+            <option value="4" data-i18n="fac_4">4 - auth (Security)</option>
+            <option value="5" data-i18n="fac_5">5 - syslog (Syslog)</option>
+            <option value="10" data-i18n="fac_10">10 - authpriv (Priv Auth)</option>
+            <option value="16" data-i18n="fac_16">16 - local0 (Network)</option>
+            <option value="17" data-i18n="fac_17">17 - local1</option>
+            <option value="18" data-i18n="fac_18">18 - local2</option>
+            <option value="19" data-i18n="fac_19">19 - local3</option>
+            <option value="20" data-i18n="fac_20">20 - local4</option>
+            <option value="21" data-i18n="fac_21">21 - local5</option>
+            <option value="22" data-i18n="fac_22">22 - local6</option>
+            <option value="23" data-i18n="fac_23">23 - local7 (Network)</option>
+          </select>
+        </div>
+
+        <div class="flex items-center gap-1.5">
+          <span class="text-slate-400 font-mono text-[11px]" data-i18n="limit_label">Limit:</span>
+          <select id="limit-select" onchange="loadCurrentLogs(); updateAdvIndicator();"
+            class="bg-slate-950 border border-slate-700/80 text-slate-300 text-xs rounded-lg px-2 py-1.5 focus:outline-none focus:border-emerald-500 font-mono">
+            <option value="50">50</option>
+            <option value="100" selected>100</option>
+            <option value="250">250</option>
+            <option value="500">500</option>
+            <option value="1000">1000</option>
+          </select>
+        </div>
+
+        <!-- Custom Date Range Inputs -->
+        <div id="custom-time-container" class="hidden items-center gap-1.5 bg-slate-950 px-2.5 py-1 rounded-lg border border-slate-700">
+          <span class="text-[11px] text-slate-400 font-mono" data-i18n="time_from_lbl">From:</span>
+          <input type="datetime-local" id="time-from" class="bg-transparent text-slate-200 text-xs focus:outline-none font-mono">
+          <span class="text-[11px] text-slate-400 font-mono" data-i18n="time_to_lbl">To:</span>
+          <input type="datetime-local" id="time-to" class="bg-transparent text-slate-200 text-xs focus:outline-none font-mono">
+        </div>
       </div>
 
       <!-- Quick Presets Pills (Row 3) -->
@@ -891,6 +911,17 @@
             <div class="p-3 rounded-lg bg-emerald-950/30 border border-emerald-800/40 text-emerald-300 text-[11px] leading-relaxed">
               <strong>💡 Safe GitHub Updates:</strong> When you run <code class="bg-black/50 px-1 py-0.5 rounded text-emerald-200">git pull</code> or rebuild the Docker container, all settings, forwarders, and device databases remain completely untouched because they are securely stored in the Docker volume.
             </div>
+
+            <div class="border-t border-slate-800 pt-3">
+              <h3 class="text-xs font-bold text-slate-200 mb-1" data-i18n="purge_test_title">Synthetic Test Data Cleanup</h3>
+              <p class="text-slate-400 text-xs mb-3" data-i18n="purge_test_desc">Remove all artificial test devices (10.0.0.x, 192.168.1.1x, 127.0.0.1) and their SQLite databases created during verification tests.</p>
+              <button onclick="purgeTestDataConfirm()" class="px-3.5 py-2 bg-rose-950/70 hover:bg-rose-900 border border-rose-700/80 text-rose-300 rounded-lg font-semibold text-xs transition flex items-center gap-2">
+                <svg class="w-4 h-4 text-rose-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                </svg>
+                <span data-i18n="purge_test_btn">Purge Synthetic Test Data</span>
+              </button>
+            </div>
           </div>
         </div>
 
@@ -1188,7 +1219,18 @@
         filter_device_cleared: "Device filter cleared (All devices)",
         filter_tag_applied: "Filtered by tag: {tag}",
         filter_tag_cleared: "Tag filter cleared",
-        filter_vendor_applied: "Filtered by vendor: {vendor}"
+        filter_vendor_applied: "Filtered by vendor: {vendor}",
+        btn_more_filters: "Filters",
+        fac_label: "Facility:",
+        limit_label: "Limit:",
+        delete_device_tip: "Delete device & logs database",
+        delete_device_confirm: "Are you sure you want to delete device {ip} and completely remove its SQLite database and logs? This action cannot be undone.",
+        device_deleted_toast: "Device {ip} deleted",
+        purge_test_title: "Synthetic Test Data Cleanup",
+        purge_test_desc: "Remove all artificial test devices (10.0.0.x, 192.168.1.1x, 127.0.0.1) and their SQLite databases created during verification tests.",
+        purge_test_btn: "Purge Synthetic Test Data",
+        purge_test_confirm: "Are you sure you want to purge all synthetic test databases and registry entries? Real devices will not be affected.",
+        purge_test_success: "Purged {count} synthetic test devices."
       },
       ru: {
         app_title: "Syslog-Агрегатор",
@@ -1390,7 +1432,18 @@
         filter_device_cleared: "Выбраны все устройства",
         filter_tag_applied: "Поиск по тегу: {tag}",
         filter_tag_cleared: "Поиск по тегу сброшен",
-        filter_vendor_applied: "Фильтр по вендору: {vendor}"
+        filter_vendor_applied: "Фильтр по вендору: {vendor}",
+        btn_more_filters: "Фильтры",
+        fac_label: "Категория:",
+        limit_label: "Лимит:",
+        delete_device_tip: "Удалить устройство и базу логов",
+        delete_device_confirm: "Вы уверены, что хотите удалить устройство {ip} и полностью стереть его базу логов SQLite? Это действие необратимо.",
+        device_deleted_toast: "Устройство {ip} удалено",
+        purge_test_title: "Очистка тестовых данных",
+        purge_test_desc: "Удалить все искусственные тестовые устройства (10.0.0.x, 192.168.1.1x, 127.0.0.1) и их базы SQLite, созданные автотестами.",
+        purge_test_btn: "Удалить тестовые данные",
+        purge_test_confirm: "Удалить все тестовые базы данных и записи реестра? Реальные устройства затронуты не будут.",
+        purge_test_success: "Удалено {count} тестовых устройств."
       }
     };
 
@@ -1717,7 +1770,7 @@
             : '<span class="w-2 h-2 rounded-full bg-slate-600"></span>';
 
           html += `
-            <div onclick="selectDevice('${d.ip}')" class="p-2.5 rounded-lg cursor-pointer transition flex items-center justify-between border ${isSelected ? 'bg-emerald-950/40 border-emerald-500/60 shadow' : 'bg-slate-900/40 border-slate-800/80 hover:bg-slate-800/50'}">
+            <div onclick="selectDevice('${d.ip}')" class="group relative p-2.5 rounded-lg cursor-pointer transition flex items-center justify-between border ${isSelected ? 'bg-emerald-950/40 border-emerald-500/60 shadow' : 'bg-slate-900/40 border-slate-800/80 hover:bg-slate-800/50'}">
               <div class="flex items-center gap-2.5 overflow-hidden">
                 ${statusDot}
                 <div class="truncate">
@@ -1728,9 +1781,18 @@
                   <div class="text-[11px] text-slate-400 truncate">${d.hostname || t('unknown_host')}</div>
                 </div>
               </div>
-              <div class="text-right shrink-0">
-                <span class="text-xs font-mono font-bold text-slate-300">${Number(d.log_count).toLocaleString()}</span>
-                <div class="text-[10px] text-slate-500 font-mono">${t('logs_label')}</div>
+              <div class="flex items-center gap-2 shrink-0">
+                <div class="text-right">
+                  <span class="text-xs font-mono font-bold text-slate-300">${Number(d.log_count).toLocaleString()}</span>
+                  <div class="text-[10px] text-slate-500 font-mono">${t('logs_label')}</div>
+                </div>
+                <button type="button" onclick="deleteDeviceConfirm(event, '${d.ip}')"
+                  title="${t('delete_device_tip')}"
+                  class="opacity-0 group-hover:opacity-100 p-1 text-slate-500 hover:text-rose-400 hover:bg-rose-950/60 rounded transition">
+                  <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                  </svg>
+                </button>
               </div>
             </div>
           `;
@@ -1793,17 +1855,50 @@
       loadCurrentLogs();
     }
 
+    function toggleAdvancedFilters() {
+      const drawer = document.getElementById('advanced-filters-drawer');
+      if (!drawer) return;
+      drawer.classList.toggle('hidden');
+      if (!drawer.classList.contains('hidden')) {
+        drawer.classList.add('flex');
+      } else {
+        drawer.classList.remove('flex');
+      }
+    }
+
+    function updateAdvIndicator() {
+      const fac = document.getElementById('facility-select')?.value;
+      const tr = document.getElementById('time-range-select')?.value;
+      const limit = document.getElementById('limit-select')?.value;
+      const ind = document.getElementById('adv-filter-indicator');
+      if (!ind) return;
+      const isCustomTime = tr === 'custom';
+      const hasFac = fac && fac !== '';
+      const nonDefaultLimit = limit && limit !== '100';
+      if (hasFac || nonDefaultLimit || isCustomTime) {
+        ind.classList.remove('hidden');
+      } else {
+        ind.classList.add('hidden');
+      }
+    }
+
     function handleTimeRangeChange() {
       const val = document.getElementById('time-range-select').value;
       const container = document.getElementById('custom-time-container');
+      const drawer = document.getElementById('advanced-filters-drawer');
       if (val === 'custom') {
         container.classList.remove('hidden');
         container.classList.add('flex');
+        if (drawer && drawer.classList.contains('hidden')) {
+          drawer.classList.remove('hidden');
+          drawer.classList.add('flex');
+        }
       } else {
         container.classList.add('hidden');
         container.classList.remove('flex');
         loadCurrentLogs();
       }
+      updateAdvIndicator();
     }
 
     function clearSearchInput() {
@@ -1845,7 +1940,52 @@
       const limitSelect = document.getElementById('limit-select');
       if (limitSelect) limitSelect.value = '100';
 
+      updateAdvIndicator();
       applyQuickPreset('all');
+    }
+
+    async function deleteDeviceConfirm(event, ip) {
+      if (event) {
+        event.stopPropagation();
+        event.preventDefault();
+      }
+      const msg = t('delete_device_confirm', { ip });
+      if (!confirm(msg)) return;
+      try {
+        const res = await fetch(`/api/v1/devices/${encodeURIComponent(ip)}`, { method: 'DELETE' });
+        const data = await res.json();
+        if (res.ok) {
+          showToastNotification(t('device_deleted_toast', { ip }));
+          if (selectedDeviceIp === ip) {
+            selectDevice(null);
+          }
+          fetchDevices();
+        } else {
+          showToastNotification(data.detail || 'Delete failed');
+        }
+      } catch (err) {
+        showToastNotification('Error: ' + err.message);
+      }
+    }
+
+    async function purgeTestDataConfirm() {
+      if (!confirm(t('purge_test_confirm'))) return;
+      try {
+        const res = await fetch('/api/v1/devices/purge-test-data', { method: 'POST' });
+        const data = await res.json();
+        if (res.ok) {
+          showToastNotification(t('purge_test_success', { count: data.purged_count }));
+          if (selectedDeviceIp && (selectedDeviceIp.startsWith('10.0.0.') || selectedDeviceIp.startsWith('192.168.1.') || selectedDeviceIp === '127.0.0.1')) {
+            selectDevice(null);
+          }
+          fetchDevices();
+          loadCurrentLogs();
+        } else {
+          showToastNotification(data.detail || 'Purge failed');
+        }
+      } catch (err) {
+        showToastNotification('Error: ' + err.message);
+      }
     }
 
     function buildLogQueryParams() {
@@ -1992,17 +2132,23 @@
     }
 
     function appendLogEntry(log, prepend = false) {
+      const container = document.getElementById('logs-container');
+      if (!container) return;
+      const row = createLogRow(log);
       if (prepend) {
         logsBuffer.unshift(log);
-        if (logsBuffer.length > MAX_BUFFER_SIZE) logsBuffer.pop();
-        const container = document.getElementById('logs-container');
-        const row = createLogRow(log);
         container.insertBefore(row, container.firstChild);
+        if (logsBuffer.length > MAX_BUFFER_SIZE) {
+          logsBuffer.pop();
+          if (container.lastChild) container.removeChild(container.lastChild);
+        }
       } else {
         logsBuffer.push(log);
-        if (logsBuffer.length > MAX_BUFFER_SIZE) logsBuffer.shift();
-        const container = document.getElementById('logs-container');
-        container.appendChild(createLogRow(log));
+        container.appendChild(row);
+        if (logsBuffer.length > MAX_BUFFER_SIZE) {
+          logsBuffer.shift();
+          if (container.firstChild) container.removeChild(container.firstChild);
+        }
       }
       updateLogCountDisplay();
       checkAutoScroll();

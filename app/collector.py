@@ -1,11 +1,10 @@
 import asyncio
 import logging
-from typing import Set, Dict, Any, Optional, List, Tuple
+from typing import Dict, Any, Optional, List, Tuple
 from asyncio import DatagramProtocol, StreamReader, StreamWriter
 
 from app.config import (
     SYSLOG_HOST,
-    SYSLOG_PORT,
     BATCH_SIZE,
     BATCH_TIMEOUT_SEC,
     MAX_QUEUE_SIZE,
@@ -16,7 +15,6 @@ from app.webhooks import evaluate_and_dispatch_webhooks
 from app.forwarder import (
     dispatch_pre_parse_forwarding,
     forward_vendor_filtered_logs,
-    evaluate_and_forward_logs,
 )
 
 logger = logging.getLogger("syslog.collector")

@@ -1,11 +1,10 @@
 import re
-import json
 import logging
 import asyncio
 from typing import List, Dict, Any, Optional
 import httpx
 import aiosqlite
-from datetime import datetime, timezone
+from datetime import datetime
 
 from app.config import REGISTRY_DB_PATH, get_app_timezone
 

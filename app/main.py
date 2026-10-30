@@ -29,17 +29,15 @@ if sys.platform == "win32":
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Query, HTTPException, Request
 from fastapi.responses import HTMLResponse, StreamingResponse, Response
 from fastapi.templating import Jinja2Templates
-from pydantic import BaseModel, HttpUrl
+from pydantic import BaseModel
 
 from app.config import (
     SYSLOG_HOST,
-    SYSLOG_PORT,
     SYSLOG_PORTS,
     WEB_HOST,
     WEB_PORT,
     RETENTION_DAYS,
     CLEANUP_INTERVAL_HOURS,
-    DEVICES_DIR,
     DATA_DIR,
     get_app_timezone,
 )
@@ -47,11 +45,12 @@ from app.storage import (
     init_registry_db,
     get_all_devices,
     get_device_info,
+    delete_device,
+    purge_synthetic_test_devices,
     query_device_logs,
     query_all_devices_logs,
     cleanup_retention_worker,
     get_all_settings,
-    get_setting,
     update_settings,
     export_full_backup,
     import_full_backup,
@@ -298,6 +297,22 @@ async def get_device(ip: str):
     if not dev:
         raise HTTPException(status_code=404, detail="Device not found")
     return dev
+
+
+@app.delete("/api/v1/devices/{ip}")
+async def remove_device(ip: str):
+    """Permanently deletes a device and its isolated SQLite database."""
+    success = await delete_device(ip)
+    if not success:
+        raise HTTPException(status_code=404, detail="Device not found")
+    return {"status": "deleted", "ip": ip}
+
+
+@app.post("/api/v1/devices/purge-test-data")
+async def purge_test_data():
+    """Purges synthetic test devices (10.0.0.x, 192.168.1.1x, 127.0.0.1) from databases."""
+    deleted_ips = await purge_synthetic_test_devices()
+    return {"status": "purged", "deleted_devices": deleted_ips}
 
 
 @app.get("/api/v1/devices/{ip}/logs")
