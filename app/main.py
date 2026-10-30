@@ -65,6 +65,7 @@ from app.collector import (
     register_sse,
     unregister_sse,
     STATS,
+    eps_calculator_worker,
 )
 from app.webhooks import (
     get_all_webhooks,
@@ -187,6 +188,8 @@ async def lifespan(app: FastAPI):
     _background_tasks.append(retention_task)
     stats_flush_task = asyncio.create_task(periodic_stats_flush_task())
     _background_tasks.append(stats_flush_task)
+    eps_task = asyncio.create_task(eps_calculator_worker())
+    _background_tasks.append(eps_task)
 
     logger.info("Syslog Aggregator Engine is fully running on ports: %s", _bound_ports)
 
@@ -438,6 +441,7 @@ async def get_system_stats():
 
     return {
         "stats": STATS,
+        "eps": STATS.get("eps", 0),
         "listening_ports": _bound_ports,
         "devices_count": len(devices),
         "devices_online": online_count,

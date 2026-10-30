@@ -34,7 +34,26 @@ STATS = {
     "total_dropped": 0,
     "udp_received": 0,
     "tcp_received": 0,
+    "eps": 0,
 }
+
+_last_received_for_eps = 0
+
+async def eps_calculator_worker():
+    """Periodically calculates real-time incoming events per second (EPS)."""
+    global _last_received_for_eps
+    while True:
+        try:
+            await asyncio.sleep(1.0)
+            curr = STATS["total_received"]
+            delta = max(0, curr - _last_received_for_eps)
+            _last_received_for_eps = curr
+            STATS["eps"] = delta
+        except asyncio.CancelledError:
+            break
+        except Exception as e:
+            logger.debug("EPS worker tick exception: %s", e)
+
 
 # --- Subscription Hub ---
 

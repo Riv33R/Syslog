@@ -92,6 +92,9 @@
         <span class="text-slate-600">|</span>
         <span class="text-slate-400" data-i18n="stat_total_logs">Total Logs:</span>
         <span id="stat-total-logs" class="font-bold text-amber-400">0</span>
+        <span class="text-slate-600">|</span>
+        <span class="text-slate-400" data-i18n="stat_logs_per_sec">Logs/s:</span>
+        <span id="stat-logs-rate" class="font-bold text-emerald-400">0/s</span>
       </div>
 
       <div class="flex items-center gap-2">
@@ -1024,6 +1027,7 @@
         stat_devices: "Devices:",
         stat_online: "Online:",
         stat_total_logs: "Total Logs:",
+        stat_logs_per_sec: "Logs/s:",
         nav_forwarding: "Log Forwarding",
         nav_webhooks: "Webhooks",
         nav_api: "API",
@@ -1237,6 +1241,7 @@
         stat_devices: "Устройства:",
         stat_online: "Онлайн:",
         stat_total_logs: "Всего логов:",
+        stat_logs_per_sec: "Логов/сек:",
         nav_forwarding: "Пересылка логов",
         nav_webhooks: "Вебхуки",
         nav_api: "API",
@@ -1467,19 +1472,54 @@
     let forwardingEndpoints = [];
     let currentQuickPreset = 'all';
 
-    function formatLogTime(ts) {
-      if (!ts) return '--:--:--';
-      try {
-        const d = new Date(ts);
-        if (!isNaN(d.getTime())) {
-          const tz = currentSettings.timezone || 'Europe/Chisinau';
-          const timePart = d.toLocaleTimeString('en-GB', {
+    // High performance batching queue and rate counter
+    let incomingLogQueue = [];
+    let isRenderScheduled = false;
+    let rateCounter = 0;
+    let currentLogsPerSec = 0;
+    let cachedTimeFormatter = null;
+    let cachedFormatterTz = null;
+
+    let cachedFilters = {
+      severity: '',
+      facility: '',
+      vendor: 'all',
+      search: '',
+      hasSearch: false
+    };
+
+    function getTimeFormatter() {
+      const tz = currentSettings.timezone || 'Europe/Chisinau';
+      if (!cachedTimeFormatter || cachedFormatterTz !== tz) {
+        cachedFormatterTz = tz;
+        try {
+          cachedTimeFormatter = new Intl.DateTimeFormat('en-GB', {
             timeZone: tz,
             hour: '2-digit',
             minute: '2-digit',
             second: '2-digit',
             hour12: false
           });
+        } catch (e) {
+          cachedTimeFormatter = new Intl.DateTimeFormat('en-GB', {
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit',
+            hour12: false
+          });
+        }
+      }
+      return cachedTimeFormatter;
+    }
+
+    function formatLogTime(ts) {
+      if (!ts) return '--:--:--';
+      try {
+        const d = new Date(ts);
+        const msTime = d.getTime();
+        if (!isNaN(msTime)) {
+          const formatter = getTimeFormatter();
+          const timePart = formatter.format(d);
           const ms = String(d.getMilliseconds()).padStart(3, '0');
           return `${timePart}.${ms}`;
         }
@@ -1504,6 +1544,8 @@
     }
 
     function updateTimezoneDisplay() {
+      cachedTimeFormatter = null;
+      cachedFormatterTz = null;
       const tz = currentSettings.timezone || 'Europe/Chisinau';
       const shortName = tz.split('/').pop().replace('_', ' ');
       const disp = document.getElementById('current-tz-display');
@@ -1672,14 +1714,20 @@
       };
 
       ws.onmessage = (event) => {
-        if (isStreamPaused) return;
-
         try {
           const item = JSON.parse(event.data);
           if (item.type === 'info' || item.type === 'pong') return;
 
+          rateCounter++;
+
+          if (isStreamPaused) return;
+
           if (matchesFilters(item)) {
-            appendLogEntry(item, true);
+            incomingLogQueue.push(item);
+            if (incomingLogQueue.length > MAX_BUFFER_SIZE * 2) {
+              incomingLogQueue.splice(0, incomingLogQueue.length - MAX_BUFFER_SIZE);
+            }
+            scheduleBatchRender();
           }
         } catch (e) {
           console.error("WS parse error", e);
@@ -1717,6 +1765,9 @@
         document.getElementById('stat-devices-count').textContent = data.devices_count || 0;
         document.getElementById('stat-devices-online').textContent = data.devices_online || 0;
         document.getElementById('stat-total-logs').textContent = Number(data.total_logs_stored || 0).toLocaleString();
+        if (!ws || ws.readyState !== WebSocket.OPEN) {
+          updateRateDisplay(data.eps || (data.stats && data.stats.eps) || 0);
+        }
       } catch (e) { }
     }
 
@@ -2050,7 +2101,17 @@
     }
 
     // --- Loading Logs from SQLite DB ---
+    function syncFiltersCache() {
+      cachedFilters.severity = document.getElementById('severity-select')?.value || '';
+      cachedFilters.facility = document.getElementById('facility-select')?.value || '';
+      cachedFilters.vendor = document.getElementById('console-vendor-select')?.value || 'all';
+      const q = document.getElementById('log-search-input')?.value.trim().toLowerCase() || '';
+      cachedFilters.search = q;
+      cachedFilters.hasSearch = q.length > 0;
+    }
+
     async function loadCurrentLogs() {
+      syncFiltersCache();
       const params = buildLogQueryParams();
       let url = selectedDeviceIp
         ? `/api/v1/devices/${selectedDeviceIp}/logs?${params.toString()}`
@@ -2073,19 +2134,19 @@
     function matchesFilters(item) {
       if (selectedDeviceIp && item.source_ip !== selectedDeviceIp) return false;
 
-      const sevFilter = document.getElementById('severity-select')?.value || '';
+      const sevFilter = cachedFilters.severity;
       if (sevFilter === 'lte_3') {
         if (item.severity > 3) return false;
       } else if (sevFilter === 'lte_4') {
         if (item.severity > 4) return false;
       } else if (sevFilter !== '') {
-        if (item.severity !== parseInt(sevFilter)) return false;
+        if (item.severity !== parseInt(sevFilter, 10)) return false;
       }
 
-      const facFilter = document.getElementById('facility-select')?.value || '';
-      if (facFilter !== '' && item.facility !== parseInt(facFilter)) return false;
+      const facFilter = cachedFilters.facility;
+      if (facFilter !== '' && item.facility !== parseInt(facFilter, 10)) return false;
 
-      const vendorFilter = document.getElementById('console-vendor-select')?.value || 'all';
+      const vendorFilter = cachedFilters.vendor;
       if (vendorFilter !== 'all' && item.vendor_type !== vendorFilter) return false;
 
       if (currentQuickPreset === 'errors') {
@@ -2105,53 +2166,119 @@
         if (!str.includes('bgp') && !str.includes('ospf') && !str.includes('neighbor')) return false;
       }
 
-      const textFilter = document.getElementById('log-search-input')?.value.trim().toLowerCase();
-      if (textFilter) {
-        const haystack = (
-          (item.raw || '') + ' ' +
-          (item.source_ip || '') + ' ' +
-          (item.tag || '') + ' ' +
-          (item.mnemonic || '') + ' ' +
-          JSON.stringify(item.parsed_json || {})
-        ).toLowerCase();
-        if (!haystack.includes(textFilter)) return false;
+      if (cachedFilters.hasSearch) {
+        const q = cachedFilters.search;
+        const raw = (item.raw || '').toLowerCase();
+        const ip = (item.source_ip || '').toLowerCase();
+        const tag = (item.tag || '').toLowerCase();
+        const mne = (item.mnemonic || '').toLowerCase();
+        const msg = (item.message || '').toLowerCase();
+        if (!raw.includes(q) && !ip.includes(q) && !tag.includes(q) && !mne.includes(q) && !msg.includes(q)) {
+          return false;
+        }
       }
 
       return true;
     }
 
-    // --- Rendering Log Rows ---
+    // --- High-Throughput Batched Rendering (rAF + DocumentFragment) ---
+    function scheduleBatchRender() {
+      if (isRenderScheduled) return;
+      isRenderScheduled = true;
+      requestAnimationFrame(flushBatchLogs);
+    }
+
+    function flushBatchLogs() {
+      isRenderScheduled = false;
+      if (incomingLogQueue.length === 0) return;
+
+      const container = document.getElementById('logs-container');
+      if (!container) return;
+
+      const batch = incomingLogQueue.splice(0);
+
+      // Prepend to logsBuffer (newest at index 0)
+      for (let i = batch.length - 1; i >= 0; i--) {
+        logsBuffer.unshift(batch[i]);
+      }
+      if (logsBuffer.length > MAX_BUFFER_SIZE) {
+        logsBuffer.length = MAX_BUFFER_SIZE;
+      }
+
+      // Build DOM nodes in DocumentFragment
+      const fragment = document.createDocumentFragment();
+      for (let i = batch.length - 1; i >= 0; i--) {
+        fragment.appendChild(createLogRow(batch[i]));
+      }
+
+      // Single DOM mutation for entire batch
+      container.insertBefore(fragment, container.firstChild);
+
+      // Clean up excess rows from bottom
+      while (container.children.length > MAX_BUFFER_SIZE) {
+        container.removeChild(container.lastChild);
+      }
+
+      updateLogCountDisplay();
+      checkAutoScroll();
+    }
+
     function renderLogsBuffer() {
       const container = document.getElementById('logs-container');
+      if (!container) return;
       container.innerHTML = '';
+      const fragment = document.createDocumentFragment();
       logsBuffer.forEach(log => {
-        container.appendChild(createLogRow(log));
+        fragment.appendChild(createLogRow(log));
       });
+      container.appendChild(fragment);
       updateLogCountDisplay();
       checkAutoScroll();
     }
 
     function appendLogEntry(log, prepend = false) {
-      const container = document.getElementById('logs-container');
-      if (!container) return;
-      const row = createLogRow(log);
       if (prepend) {
-        logsBuffer.unshift(log);
-        container.insertBefore(row, container.firstChild);
-        if (logsBuffer.length > MAX_BUFFER_SIZE) {
-          logsBuffer.pop();
-          if (container.lastChild) container.removeChild(container.lastChild);
-        }
+        incomingLogQueue.push(log);
+        scheduleBatchRender();
       } else {
         logsBuffer.push(log);
-        container.appendChild(row);
         if (logsBuffer.length > MAX_BUFFER_SIZE) {
           logsBuffer.shift();
-          if (container.firstChild) container.removeChild(container.firstChild);
         }
+        renderLogsBuffer();
       }
-      updateLogCountDisplay();
-      checkAutoScroll();
+    }
+
+    // --- Logs Per Second (EPS) Counter ---
+    function initRateCounter() {
+      setInterval(() => {
+        currentLogsPerSec = rateCounter;
+        rateCounter = 0;
+        updateRateDisplay(currentLogsPerSec);
+      }, 1000);
+    }
+
+    function formatRateNumber(num) {
+      if (num >= 1000000) {
+        return (num / 1000000).toFixed(1) + 'M/s';
+      }
+      if (num >= 1000) {
+        return (num / 1000).toFixed(1) + 'k/s';
+      }
+      return num + '/s';
+    }
+
+    function updateRateDisplay(rate) {
+      const el = document.getElementById('stat-logs-rate');
+      if (!el) return;
+      el.textContent = formatRateNumber(rate);
+      if (rate > 500) {
+        el.className = "font-bold text-amber-400";
+      } else if (rate > 0) {
+        el.className = "font-bold text-emerald-400";
+      } else {
+        el.className = "font-bold text-slate-400";
+      }
     }
 
     function createLogRow(item) {
@@ -3035,16 +3162,25 @@
     // Initialization
     window.addEventListener('DOMContentLoaded', () => {
       initWebSocket();
+      initRateCounter();
       fetchSettings();
       fetchDevices();
       loadForwardingEndpoints();
+      syncFiltersCache();
       loadCurrentLogs();
       updateUiLanguage(); // Initializes language (default is English)
       updateTimezoneDisplay();
 
+      // Attach filter change listeners for instant cache sync
+      ['severity-select', 'facility-select', 'console-vendor-select'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.addEventListener('change', syncFiltersCache);
+      });
+
       const searchInput = document.getElementById('log-search-input');
       if (searchInput) {
         searchInput.addEventListener('input', () => {
+          syncFiltersCache();
           const clearBtn = document.getElementById('clear-search-btn');
           if (clearBtn) {
             if (searchInput.value.trim().length > 0) {
