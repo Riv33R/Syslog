@@ -940,9 +940,9 @@
       class="bg-slate-900 border border-slate-800 rounded-xl max-w-3xl w-full max-h-[85vh] flex flex-col shadow-2xl overflow-hidden font-mono text-xs select-text">
       <div class="p-3.5 border-b border-slate-800 flex justify-between items-center bg-slate-950 select-none">
         <div class="flex items-center gap-2">
-          <span id="modal-sev-badge" class="px-2 py-0.5 rounded text-[10px] font-bold"></span>
-          <span id="modal-vendor-badge" class="px-2 py-0.5 rounded text-[10px] font-bold"></span>
-          <span id="modal-ip-badge" class="text-slate-300 font-bold"></span>
+          <button id="modal-sev-badge" type="button" onclick="filterFromModal('severity')" class="px-2 py-0.5 rounded text-[10px] font-bold cursor-pointer transition hover:brightness-125 hover:scale-105 active:scale-95 border select-none"></button>
+          <button id="modal-vendor-badge" type="button" onclick="filterFromModal('vendor')" class="px-2 py-0.5 rounded text-[10px] font-bold cursor-pointer transition hover:brightness-125 hover:scale-105 active:scale-95 border select-none"></button>
+          <button id="modal-ip-badge" type="button" onclick="filterFromModal('ip')" class="text-slate-300 font-bold cursor-pointer hover:text-emerald-400 transition underline decoration-dotted select-none"></button>
           <span id="modal-time-badge" class="text-slate-500 text-[11px]"></span>
         </div>
         <button onclick="closeDetailModal()" class="text-slate-400 hover:text-slate-200">
@@ -1177,7 +1177,18 @@
         settings_restore_desc: "Upload a previously exported JSON backup to immediately restore all configurations.",
         settings_btn_restore: "Restore Configuration",
         settings_restore_success: "Backup restored successfully! Imported {endpoints} endpoints and {webhooks} webhooks.",
-        settings_restore_error: "Failed to restore backup. Invalid JSON format."
+        settings_restore_error: "Failed to restore backup. Invalid JSON format.",
+        filter_by_sev_tip: "Filter by severity: {sev} (Click to toggle)",
+        filter_by_ip_tip: "Filter by device: {ip} (Click to toggle)",
+        filter_by_tag_tip: "Filter by tag/mnemonic: {tag} (Click to toggle)",
+        filter_by_vendor_tip: "Filter by vendor: {vendor}",
+        filter_sev_applied: "Filtered by severity: {sev}",
+        filter_sev_cleared: "Severity filter cleared (All)",
+        filter_device_applied: "Filtered by device: {ip}",
+        filter_device_cleared: "Device filter cleared (All devices)",
+        filter_tag_applied: "Filtered by tag: {tag}",
+        filter_tag_cleared: "Tag filter cleared",
+        filter_vendor_applied: "Filtered by vendor: {vendor}"
       },
       ru: {
         app_title: "Syslog-Агрегатор",
@@ -1368,7 +1379,18 @@
         settings_restore_desc: "Загрузите ранее сохранённый JSON-файл для мгновенного восстановления всех конфигураций.",
         settings_btn_restore: "Восстановить конфигурацию",
         settings_restore_success: "Конфигурация успешно восстановлена! Загружено {endpoints} точек и {webhooks} вебхуков.",
-        settings_restore_error: "Ошибка восстановления бэкапа. Проверьте формат JSON-файла."
+        settings_restore_error: "Ошибка восстановления бэкапа. Проверьте формат JSON-файла.",
+        filter_by_sev_tip: "Фильтровать по уровню {sev} (Клик для переключения)",
+        filter_by_ip_tip: "Фильтровать по устройству {ip} (Клик для переключения)",
+        filter_by_tag_tip: "Фильтровать по тегу/мнемонике {tag} (Клик для переключения)",
+        filter_by_vendor_tip: "Фильтровать по вендору: {vendor}",
+        filter_sev_applied: "Фильтр по уровню: {sev}",
+        filter_sev_cleared: "Фильтр важности сброшен (Все)",
+        filter_device_applied: "Выбрано устройство: {ip}",
+        filter_device_cleared: "Выбраны все устройства",
+        filter_tag_applied: "Поиск по тегу: {tag}",
+        filter_tag_cleared: "Поиск по тегу сброшен",
+        filter_vendor_applied: "Фильтр по вендору: {vendor}"
       }
     };
 
@@ -1755,7 +1777,7 @@
     }
 
     // --- Quick Presets & Filters Management ---
-    function applyQuickPreset(preset) {
+    function setQuickPresetVisual(preset) {
       currentQuickPreset = preset;
       document.querySelectorAll('.preset-chip').forEach(btn => {
         if (btn.id === `preset-chip-${preset}`) {
@@ -1764,6 +1786,10 @@
           btn.className = "preset-chip px-2 py-0.5 rounded font-mono bg-slate-900 text-slate-400 border border-slate-800 hover:border-slate-700 hover:text-slate-200 transition";
         }
       });
+    }
+
+    function applyQuickPreset(preset) {
+      setQuickPresetVisual(preset);
       loadCurrentLogs();
     }
 
@@ -1996,7 +2022,9 @@
 
       if (item.vendor_type === 'cisco') {
         const mne = item.mnemonic || pData.mnemonic || 'CISCO';
-        vendorSpecificBadge = `<span class="px-1.5 py-0.5 rounded text-[10px] font-mono font-bold bg-sky-950 text-sky-400 border border-sky-800">%${mne}</span>`;
+        vendorSpecificBadge = `<button type="button" onclick="filterByTag(event, '%${escapeHtml(mne)}')"
+          title="${t('filter_by_tag_tip', { tag: '%' + mne })}"
+          class="px-1.5 py-0.5 rounded text-[10px] font-mono font-bold bg-sky-950 text-sky-400 border border-sky-800 transition hover:brightness-125 hover:scale-105 active:scale-95 cursor-pointer select-none">%${escapeHtml(mne)}</button>`;
         messageContent = pData.message || item.message || item.raw;
       } else if (item.vendor_type === 'fortigate') {
         const action = (pData.action || '').toLowerCase();
@@ -2007,19 +2035,28 @@
           actClass = "bg-emerald-950 text-emerald-300 border-emerald-800 font-bold";
         }
         const trafficInfo = pData.srcip ? `${pData.srcip}${pData.srcport ? ':' + pData.srcport : ''} &rarr; ${pData.dstip}${pData.dstport ? ':' + pData.dstport : ''}` : '';
+        const actLabel = (action || 'TRAFFIC').toUpperCase();
         vendorSpecificBadge = `
-          <span class="px-1.5 py-0.5 rounded text-[10px] font-mono border ${actClass}">${(action || 'TRAFFIC').toUpperCase()}</span>
+          <button type="button" onclick="filterByTag(event, '${escapeHtml(action || 'traffic')}')"
+            title="${t('filter_by_tag_tip', { tag: action || 'traffic' })}"
+            class="px-1.5 py-0.5 rounded text-[10px] font-mono border transition hover:brightness-125 hover:scale-105 active:scale-95 cursor-pointer select-none ${actClass}">
+            ${escapeHtml(actLabel)}
+          </button>
           ${trafficInfo ? `<span class="text-slate-400 text-[11px] font-mono">${trafficInfo}</span>` : ''}
         `;
         messageContent = pData.msg || item.message || item.raw;
       } else if (item.vendor_type === 'linux') {
         const app = pData.app || item.tag || 'linux';
         const pid = pData.pid ? `[${pData.pid}]` : '';
-        vendorSpecificBadge = `<span class="px-1.5 py-0.5 rounded text-[10px] font-mono bg-amber-950 text-amber-300 border border-amber-800">${app}${pid}</span>`;
+        vendorSpecificBadge = `<button type="button" onclick="filterByTag(event, '${escapeHtml(app)}')"
+          title="${t('filter_by_tag_tip', { tag: app })}"
+          class="px-1.5 py-0.5 rounded text-[10px] font-mono bg-amber-950 text-amber-300 border border-amber-800 transition hover:brightness-125 hover:scale-105 active:scale-95 cursor-pointer select-none">${escapeHtml(app)}${escapeHtml(pid)}</button>`;
         messageContent = pData.message || item.message || item.raw;
       } else {
         if (item.tag) {
-          vendorSpecificBadge = `<span class="px-1.5 py-0.5 rounded text-[10px] font-mono bg-purple-950 text-purple-300 border border-purple-800">${item.tag}</span>`;
+          vendorSpecificBadge = `<button type="button" onclick="filterByTag(event, '${escapeHtml(item.tag)}')"
+            title="${t('filter_by_tag_tip', { tag: item.tag })}"
+            class="px-1.5 py-0.5 rounded text-[10px] font-mono bg-purple-950 text-purple-300 border border-purple-800 transition hover:brightness-125 hover:scale-105 active:scale-95 cursor-pointer select-none">${escapeHtml(item.tag)}</button>`;
         }
         messageContent = item.message || item.raw;
       }
@@ -2029,8 +2066,16 @@
       row.innerHTML = `
         <div class="flex items-center gap-1.5 shrink-0">
           <span class="text-slate-500 text-[11px]">${timeStr}</span>
-          <span class="px-1.5 py-0.5 rounded text-[10px] font-mono border ${sev.class}">${sev.label}</span>
-          <span class="px-1.5 py-0.5 rounded text-[10px] font-mono border ${vColor}">${item.source_ip}</span>
+          <button type="button" onclick="filterBySeverity(event, ${item.severity})"
+            title="${t('filter_by_sev_tip', { sev: sev.label })}"
+            class="px-1.5 py-0.5 rounded text-[10px] font-mono border transition hover:brightness-125 hover:scale-105 active:scale-95 cursor-pointer select-none ${sev.class}">
+            ${sev.label}
+          </button>
+          <button type="button" onclick="filterByDevice(event, '${escapeHtml(item.source_ip)}')"
+            title="${t('filter_by_ip_tip', { ip: item.source_ip })}"
+            class="px-1.5 py-0.5 rounded text-[10px] font-mono border transition hover:brightness-125 hover:scale-105 active:scale-95 cursor-pointer select-none ${vColor}">
+            ${escapeHtml(item.source_ip)}
+          </button>
         </div>
         <div class="flex items-center gap-1.5 shrink-0">
           ${vendorSpecificBadge}
@@ -2111,13 +2156,26 @@
       const sev = SEV_MAP[item.severity] || { label: `LVL${item.severity}`, class: "bg-slate-800 text-slate-300" };
       const vColor = VENDOR_COLORS[item.vendor_type] || VENDOR_COLORS.generic;
 
-      document.getElementById('modal-sev-badge').textContent = sev.label;
-      document.getElementById('modal-sev-badge').className = `px-2 py-0.5 rounded text-[10px] font-bold border ${sev.class}`;
+      const sevBtn = document.getElementById('modal-sev-badge');
+      if (sevBtn) {
+        sevBtn.textContent = sev.label;
+        sevBtn.className = `px-2 py-0.5 rounded text-[10px] font-bold border transition hover:brightness-125 hover:scale-105 active:scale-95 cursor-pointer select-none ${sev.class}`;
+        sevBtn.title = t('filter_by_sev_tip', { sev: sev.label });
+      }
 
-      document.getElementById('modal-vendor-badge').textContent = (item.vendor_type || 'generic').toUpperCase();
-      document.getElementById('modal-vendor-badge').className = `px-2 py-0.5 rounded text-[10px] font-bold border ${vColor}`;
+      const vendorBtn = document.getElementById('modal-vendor-badge');
+      if (vendorBtn) {
+        vendorBtn.textContent = (item.vendor_type || 'generic').toUpperCase();
+        vendorBtn.className = `px-2 py-0.5 rounded text-[10px] font-bold border transition hover:brightness-125 hover:scale-105 active:scale-95 cursor-pointer select-none ${vColor}`;
+        vendorBtn.title = t('filter_by_vendor_tip', { vendor: item.vendor_type || 'generic' });
+      }
 
-      document.getElementById('modal-ip-badge').textContent = item.source_ip;
+      const ipBtn = document.getElementById('modal-ip-badge');
+      if (ipBtn) {
+        ipBtn.textContent = item.source_ip;
+        ipBtn.title = t('filter_by_ip_tip', { ip: item.source_ip });
+      }
+
       document.getElementById('modal-time-badge').textContent = formatFullLogTime(item.timestamp);
       document.getElementById('modal-time-badge').title = `Raw: ${item.timestamp}`;
 
@@ -2142,6 +2200,102 @@
       if (currentModalLog) {
         navigator.clipboard.writeText(JSON.stringify(currentModalLog.parsed_json, null, 2));
       }
+    }
+
+    // --- Interactive Flag / Badge Click Filtering Handlers ---
+
+    function filterBySeverity(event, severityLevel) {
+      if (event) event.stopPropagation();
+      const select = document.getElementById('severity-select');
+      if (!select) return;
+
+      const strVal = String(severityLevel);
+      if (select.value === strVal) {
+        select.value = '';
+        showToastNotification(t('filter_sev_cleared'));
+      } else {
+        select.value = strVal;
+        const sevObj = SEV_MAP[severityLevel] || { label: `LVL${severityLevel}` };
+        showToastNotification(t('filter_sev_applied', { sev: sevObj.label }));
+      }
+
+      setQuickPresetVisual('all');
+      loadCurrentLogs();
+    }
+
+    function filterByDevice(event, ip) {
+      if (event) event.stopPropagation();
+      if (!ip) return;
+
+      if (selectedDeviceIp === ip) {
+        selectDevice(null);
+        showToastNotification(t('filter_device_cleared'));
+      } else {
+        selectDevice(ip);
+        showToastNotification(t('filter_device_applied', { ip: ip }));
+      }
+    }
+
+    function filterByTag(event, tagText) {
+      if (event) event.stopPropagation();
+      if (!tagText) return;
+
+      const searchInput = document.getElementById('log-search-input');
+      if (!searchInput) return;
+
+      const currentVal = searchInput.value.trim();
+      const cleanTag = tagText.trim();
+
+      if (currentVal.toLowerCase() === cleanTag.toLowerCase()) {
+        searchInput.value = '';
+        const clearBtn = document.getElementById('clear-search-btn');
+        if (clearBtn) clearBtn.classList.add('hidden');
+        showToastNotification(t('filter_tag_cleared'));
+      } else {
+        searchInput.value = cleanTag;
+        const clearBtn = document.getElementById('clear-search-btn');
+        if (clearBtn) clearBtn.classList.remove('hidden');
+        showToastNotification(t('filter_tag_applied', { tag: cleanTag }));
+      }
+      loadCurrentLogs();
+    }
+
+    function filterFromModal(type) {
+      if (!currentModalLog) return;
+      const item = currentModalLog;
+      closeDetailModal();
+
+      if (type === 'severity') {
+        filterBySeverity(null, item.severity);
+      } else if (type === 'ip') {
+        filterByDevice(null, item.source_ip);
+      } else if (type === 'vendor') {
+        const sel = document.getElementById('console-vendor-select');
+        if (sel) {
+          sel.value = item.vendor_type || 'all';
+          loadCurrentLogs();
+          showToastNotification(t('filter_vendor_applied', { vendor: (item.vendor_type || 'generic').toUpperCase() }));
+        }
+      }
+    }
+
+    function showToastNotification(msg) {
+      let toast = document.getElementById('floating-toast');
+      if (!toast) {
+        toast = document.createElement('div');
+        toast.id = 'floating-toast';
+        toast.className = 'fixed bottom-12 right-6 z-50 bg-slate-900 border border-emerald-500/60 text-slate-100 text-xs px-3.5 py-2 rounded-xl shadow-2xl flex items-center gap-2 transform transition-all duration-200 opacity-0 translate-y-2 pointer-events-none font-mono';
+        document.body.appendChild(toast);
+      }
+      toast.innerHTML = `<span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span><span>${escapeHtml(msg)}</span>`;
+      toast.classList.remove('opacity-0', 'translate-y-2', 'pointer-events-none');
+      toast.classList.add('opacity-100', 'translate-y-0');
+
+      clearTimeout(toast._timer);
+      toast._timer = setTimeout(() => {
+        toast.classList.remove('opacity-100', 'translate-y-0');
+        toast.classList.add('opacity-0', 'translate-y-2', 'pointer-events-none');
+      }, 2200);
     }
 
     // --- Forwarding Endpoints & Destinations Submenu Management ---
