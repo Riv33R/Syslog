@@ -518,6 +518,11 @@
 
             <input type="hidden" id="fwd-edit-id" value="">
 
+            <div class="text-[11px] text-emerald-400 bg-emerald-950/40 border border-emerald-800/40 rounded-lg px-3 py-2 flex items-center gap-2">
+              <span class="text-sm">⚡</span>
+              <span data-i18n="fwd_preparse_hint">Pre-Parse Fast Relay: Raw logs are forwarded directly from the wire in microseconds before parsing and storage.</span>
+            </div>
+
             <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3 text-xs">
               <!-- Name -->
               <div>
@@ -1072,6 +1077,7 @@
         tab_routing: "🖧 Device Routing Matrix",
         fwd_form_add_title: "Add Forwarding Destination",
         fwd_form_edit_title: "Edit Destination: {name}",
+        fwd_preparse_hint: "Pre-Parse Fast Relay: Raw logs are forwarded directly from the wire in microseconds before parsing and storage.",
         cancel_edit: "Cancel editing",
         fwd_name_label: "Destination Name",
         fwd_name_ph: "e.g. SIEM QRadar, SOC Center, Graylog",
@@ -1262,6 +1268,7 @@
         tab_routing: "🖧 Маршрутизация по устройствам (Device Matrix)",
         fwd_form_add_title: "Добавить конечную точку назначения",
         fwd_form_edit_title: "Редактировать точку: {name}",
+        fwd_preparse_hint: "Экспресс-трансляция (Pre-Parse): сырые логи перенаправляются прямо из сети за микросекунды до разбора и сохранения.",
         cancel_edit: "Отменить редактирование",
         fwd_name_label: "Название назначения",
         fwd_name_ph: "например, SIEM QRadar, SOC Center, Graylog",

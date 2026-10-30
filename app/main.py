@@ -83,6 +83,8 @@ from app.forwarder import (
     toggle_forwarding_endpoint,
     test_endpoint_dispatch,
     flush_forwarding_stats,
+    refresh_endpoints_cache,
+    close_persistent_forwarders,
 )
 
 # Logging configuration
@@ -135,6 +137,7 @@ async def lifespan(app: FastAPI):
 
     logger.info("Initializing Syslog Aggregator...")
     await init_registry_db()
+    await refresh_endpoints_cache()
 
     loop = asyncio.get_running_loop()
 
@@ -205,6 +208,8 @@ async def lifespan(app: FastAPI):
 
     # Close HTTP client
     await close_http_client()
+    # Close persistent forwarders
+    await close_persistent_forwarders()
     logger.info("Syslog Aggregator shut down successfully.")
 
 

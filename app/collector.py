@@ -13,7 +13,11 @@ from app.config import (
 from app.parsers import parse_syslog_message
 from app.storage import insert_logs_batch
 from app.webhooks import evaluate_and_dispatch_webhooks
-from app.forwarder import evaluate_and_forward_logs
+from app.forwarder import (
+    dispatch_pre_parse_forwarding,
+    forward_vendor_filtered_logs,
+    evaluate_and_forward_logs,
+)
 
 logger = logging.getLogger("syslog.collector")
 
@@ -102,6 +106,15 @@ class SyslogUdpProtocol(DatagramProtocol):
             return
 
         ip = addr[0]
+
+        # 1. EXPRESS LANE: Immediate Pre-Parse Raw Forwarding ("передаем то что получили")
+        # Dispatched in microseconds before regex parsing, database writes or WebSockets
+        try:
+            dispatch_pre_parse_forwarding(raw_text, ip, raw_bytes=data)
+        except Exception as e:
+            logger.debug("Fast-forward exception on UDP packet from %s: %s", ip, e)
+
+        # 2. ANALYTICS LANE: Enqueue for Parsing, Storage & Web UI
         try:
             _INGEST_QUEUE.put_nowait((raw_text, ip))
         except asyncio.QueueFull:
@@ -139,6 +152,14 @@ async def handle_tcp_client(reader: StreamReader, writer: StreamWriter):
 
                 STATS["total_received"] += 1
                 STATS["tcp_received"] += 1
+
+                # 1. EXPRESS LANE: Immediate Pre-Parse Raw Forwarding
+                try:
+                    dispatch_pre_parse_forwarding(line, client_ip)
+                except Exception as e:
+                    logger.debug("Fast-forward exception on TCP packet from %s: %s", client_ip, e)
+
+                # 2. ANALYTICS LANE: Enqueue for Parsing, Storage & Web UI
                 try:
                     _INGEST_QUEUE.put_nowait((line, client_ip))
                 except asyncio.QueueFull:
@@ -185,7 +206,7 @@ async def batch_processing_worker():
                 except asyncio.TimeoutError:
                     break
 
-            # Parse all messages in batch
+            # Parse all messages in batch (for Web UI, DB storage & filtering)
             parsed_batch: List[Dict[str, Any]] = []
             for raw_text, ip in batch_raw:
                 try:
@@ -198,15 +219,15 @@ async def batch_processing_worker():
                 # 1. Batch insert into isolated per-device databases & update registry
                 await insert_logs_batch(parsed_batch)
 
-                # 2. Broadcast to live WebSockets & SSE subscribers
+                # 2. Broadcast to live WebSockets & SSE subscribers (Web UI)
                 for item in parsed_batch:
                     await broadcast_to_subscribers(item)
 
                 # 3. Fire-and-forget webhook rules evaluation
                 await evaluate_and_dispatch_webhooks(parsed_batch)
 
-                # 4. Multi-target forwarding (Syslog UDP, Syslog TCP, Webhooks)
-                await evaluate_and_forward_logs(parsed_batch)
+                # 4. Fallback forwarding for rules specifically requiring vendor matching
+                await forward_vendor_filtered_logs(parsed_batch)
 
         except asyncio.CancelledError:
             logger.info("Batch processing worker cancelled.")
