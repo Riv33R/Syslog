@@ -1,5 +1,6 @@
 import os
 from pathlib import Path
+from zoneinfo import ZoneInfo
 
 # Base paths
 default_data_dir = "./syslog_data" if os.name == "nt" else "/data"
@@ -9,6 +10,17 @@ REGISTRY_DB_PATH = DATA_DIR / "registry.db"
 
 # Ensure directories exist
 DEVICES_DIR.mkdir(parents=True, exist_ok=True)
+
+# Timezone settings (Default: Chișinău Europe/Chisinau)
+DEFAULT_TIMEZONE = os.getenv("APP_TIMEZONE", os.getenv("TZ", "Europe/Chisinau"))
+
+def get_app_timezone(tz_name: str = None) -> ZoneInfo:
+    """Returns ZoneInfo object, defaulting to Europe/Chisinau."""
+    target = tz_name or DEFAULT_TIMEZONE or "Europe/Chisinau"
+    try:
+        return ZoneInfo(target)
+    except Exception:
+        return ZoneInfo("Europe/Chisinau")
 
 # Network settings
 SYSLOG_HOST = os.getenv("SYSLOG_HOST", "0.0.0.0")

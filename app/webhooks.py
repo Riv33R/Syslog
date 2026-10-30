@@ -7,7 +7,7 @@ import httpx
 import aiosqlite
 from datetime import datetime, timezone
 
-from app.config import REGISTRY_DB_PATH
+from app.config import REGISTRY_DB_PATH, get_app_timezone
 
 logger = logging.getLogger("syslog.webhooks")
 
@@ -47,7 +47,7 @@ async def create_webhook(
     action: Optional[str] = None,
     filter_regex: Optional[str] = None
 ) -> int:
-    now_iso = datetime.now(timezone.utc).isoformat()
+    now_iso = datetime.now(get_app_timezone()).isoformat()
     async with aiosqlite.connect(REGISTRY_DB_PATH) as db:
         cursor = await db.execute(
             """

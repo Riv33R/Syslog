@@ -8,7 +8,7 @@ from pathlib import Path
 from typing import List, Dict, Any, Optional, Tuple
 import aiosqlite
 
-from app.config import DEVICES_DIR, REGISTRY_DB_PATH, RETENTION_DAYS
+from app.config import DEVICES_DIR, REGISTRY_DB_PATH, RETENTION_DAYS, get_app_timezone
 
 logger = logging.getLogger("syslog.storage")
 
@@ -88,18 +88,40 @@ CREATE TABLE IF NOT EXISTS forwarding_endpoints (
     last_forwarded TEXT,
     created_at TEXT NOT NULL
 );
+
+CREATE TABLE IF NOT EXISTS settings (
+    key TEXT PRIMARY KEY,
+    value TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+);
 """
+
+# Default system settings (Default timezone: Europe/Chisinau)
+DEFAULT_SETTINGS = {
+    "timezone": "Europe/Chisinau",
+    "language": "en",
+    "retention_days": "14",
+    "date_format": "YYYY-MM-DD HH:mm:ss",
+    "autoscroll": "true"
+}
 
 # Track initialized DB paths in memory to avoid repetitive CREATE TABLE overhead
 _INITIALIZED_DBS = set()
 _LOCK = asyncio.Lock()
 
 async def init_registry_db():
-    """Initializes the central registry database."""
+    """Initializes the central registry database and ensures default settings exist."""
+    now_iso = datetime.now(get_app_timezone()).isoformat()
     async with aiosqlite.connect(REGISTRY_DB_PATH) as db:
         await db.executescript(REGISTRY_SCHEMA)
+        # Ensure default settings are populated if missing
+        for key, val in DEFAULT_SETTINGS.items():
+            await db.execute(
+                "INSERT OR IGNORE INTO settings (key, value, updated_at) VALUES (?, ?, ?)",
+                (key, str(val), now_iso)
+            )
         await db.commit()
-    logger.info("Central registry DB initialized at %s", REGISTRY_DB_PATH)
+    logger.info("Central registry DB initialized at %s with Europe/Chisinau default timezone", REGISTRY_DB_PATH)
 
 async def ensure_device_db(ip: str) -> Path:
     """
@@ -135,7 +157,7 @@ async def insert_logs_batch(batch: List[Dict[str, Any]]):
         ip = item["source_ip"]
         grouped.setdefault(ip, []).append(item)
 
-    now_iso = datetime.now(timezone.utc).isoformat()
+    now_iso = datetime.now(get_app_timezone()).isoformat()
 
     # Insert into device DBs
     for ip, items in grouped.items():
@@ -214,7 +236,7 @@ async def insert_logs_batch(batch: List[Dict[str, Any]]):
 async def get_all_devices() -> List[Dict[str, Any]]:
     """Returns list of all registered devices with online status calculation."""
     devices = []
-    now = datetime.now(timezone.utc)
+    now = datetime.now(get_app_timezone())
     online_threshold = timedelta(minutes=5)
 
     try:
@@ -402,7 +424,7 @@ async def cleanup_retention_worker(retention_days: int = RETENTION_DAYS):
     Background retention worker.
     Scans all per-device DBs and purges records older than retention_days.
     """
-    cutoff = (datetime.now(timezone.utc) - timedelta(days=retention_days)).isoformat()
+    cutoff = (datetime.now(get_app_timezone()) - timedelta(days=retention_days)).isoformat()
     logger.info("Running retention cleanup for logs older than %d days (cutoff: %s)", retention_days, cutoff)
 
     if not DEVICES_DIR.exists():
@@ -440,3 +462,115 @@ async def cleanup_retention_worker(retention_days: int = RETENTION_DAYS):
             logger.info("Retention cleanup completed successfully.")
     except Exception as e:
         logger.error("Failed to update registry log counts after retention cleanup: %s", e)
+
+
+# --- Settings & Persistence Management ---
+
+async def get_all_settings() -> Dict[str, str]:
+    """Returns dictionary of all system settings with default fallbacks."""
+    res = dict(DEFAULT_SETTINGS)
+    try:
+        async with aiosqlite.connect(REGISTRY_DB_PATH) as db:
+            db.row_factory = aiosqlite.Row
+            async with db.execute("SELECT key, value FROM settings") as cursor:
+                async for row in cursor:
+                    res[row["key"]] = row["value"]
+    except Exception as e:
+        logger.error("Failed to load settings: %s", e)
+    return res
+
+async def get_setting(key: str, default: Optional[str] = None) -> Optional[str]:
+    """Gets single setting value."""
+    settings = await get_all_settings()
+    return settings.get(key, default)
+
+async def update_settings(updates: Dict[str, Any]) -> Dict[str, str]:
+    """Updates settings in the persistent registry database."""
+    now_str = datetime.now(get_app_timezone()).isoformat()
+    async with aiosqlite.connect(REGISTRY_DB_PATH) as db:
+        for k, v in updates.items():
+            val_str = str(v)
+            await db.execute("""
+                INSERT INTO settings (key, value, updated_at)
+                VALUES (?, ?, ?)
+                ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at
+            """, (k, val_str, now_str))
+        await db.commit()
+    return await get_all_settings()
+
+async def export_full_backup() -> Dict[str, Any]:
+    """
+    Exports all persistent settings, webhooks, forwarding endpoints,
+    and device metadata into a portable JSON structure for disaster recovery.
+    """
+    from app.forwarder import get_all_forwarding_endpoints
+    from app.webhooks import get_all_webhooks
+
+    backup = {
+        "format": "syslog_aggregator_backup",
+        "version": "1.0",
+        "exported_at": datetime.now(get_app_timezone()).isoformat(),
+        "timezone": await get_setting("timezone", "Europe/Chisinau"),
+        "settings": await get_all_settings(),
+        "forwarding_endpoints": await get_all_forwarding_endpoints(),
+        "webhooks": await get_all_webhooks(),
+        "devices": await get_all_devices()
+    }
+    return backup
+
+async def import_full_backup(data: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Restores settings, webhooks, and forwarding endpoints from a backup dictionary.
+    """
+    results = {"settings_imported": 0, "endpoints_imported": 0, "webhooks_imported": 0}
+    now_str = datetime.now(get_app_timezone()).isoformat()
+
+    # Import settings
+    if "settings" in data and isinstance(data["settings"], dict):
+        await update_settings(data["settings"])
+        results["settings_imported"] = len(data["settings"])
+
+    async with aiosqlite.connect(REGISTRY_DB_PATH) as db:
+        # Import forwarding endpoints
+        if "forwarding_endpoints" in data and isinstance(data["forwarding_endpoints"], list):
+            for ep in data["forwarding_endpoints"]:
+                await db.execute("""
+                    INSERT INTO forwarding_endpoints 
+                    (name, target_type, host, port, filter_source_ip, filter_vendor, filter_max_severity, forward_format, enabled, forwarded_count, last_forwarded, created_at)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """, (
+                    ep.get("name", "Restored Endpoint"),
+                    ep.get("target_type", "udp"),
+                    ep.get("host", "127.0.0.1"),
+                    ep.get("port", 514),
+                    ep.get("filter_source_ip"),
+                    ep.get("filter_vendor"),
+                    ep.get("filter_max_severity"),
+                    ep.get("forward_format", "raw"),
+                    ep.get("enabled", 1),
+                    ep.get("forwarded_count", 0),
+                    ep.get("last_forwarded"),
+                    ep.get("created_at", now_str)
+                ))
+                results["endpoints_imported"] += 1
+
+        # Import webhooks
+        if "webhooks" in data and isinstance(data["webhooks"], list):
+            for wh in data["webhooks"]:
+                await db.execute("""
+                    INSERT INTO webhooks (name, target_url, vendor, max_severity, action, filter_regex, enabled, created_at)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                """, (
+                    wh.get("name", "Restored Webhook"),
+                    wh.get("target_url"),
+                    wh.get("vendor"),
+                    wh.get("max_severity"),
+                    wh.get("action"),
+                    wh.get("filter_regex"),
+                    wh.get("enabled", 1),
+                    wh.get("created_at", now_str)
+                ))
+                results["webhooks_imported"] += 1
+
+        await db.commit()
+    return results

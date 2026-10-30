@@ -7,7 +7,7 @@ from typing import List, Dict, Any, Optional
 import httpx
 import aiosqlite
 
-from app.config import REGISTRY_DB_PATH
+from app.config import REGISTRY_DB_PATH, get_app_timezone
 from app.webhooks import get_http_client
 
 logger = logging.getLogger("syslog.forwarder")
@@ -54,7 +54,7 @@ async def create_forwarding_endpoint(
     forward_format: str = "raw",
     enabled: bool = True
 ) -> int:
-    now_iso = datetime.now(timezone.utc).isoformat()
+    now_iso = datetime.now(get_app_timezone()).isoformat()
     clean_ip = filter_source_ip.strip() if filter_source_ip and filter_source_ip.strip() else None
     clean_vendor = filter_vendor.strip().lower() if filter_vendor and filter_vendor.strip() else None
 
@@ -252,7 +252,7 @@ async def dispatch_to_endpoint(ep: Dict[str, Any], log_item: Dict[str, Any]):
 
         # Update in-memory counters
         _FORWARD_STATS[ep_id] = _FORWARD_STATS.get(ep_id, 0) + 1
-        _LAST_FORWARD_TIME[ep_id] = datetime.now(timezone.utc).isoformat()
+        _LAST_FORWARD_TIME[ep_id] = datetime.now(get_app_timezone()).isoformat()
 
     except Exception as e:
         logger.warning("Failed forwarding to [%s] %s:%s (%s): %s", ep.get("name"), host, port, target_type, e)
@@ -286,7 +286,7 @@ async def test_endpoint_dispatch(
     test_log = {
         "source_ip": "10.0.0.1",
         "vendor_type": "cisco",
-        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "timestamp": datetime.now(get_app_timezone()).isoformat(),
         "severity": 3,
         "facility": 23,
         "tag": "LINK",

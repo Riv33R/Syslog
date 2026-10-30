@@ -1,0 +1,24 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.env
+venv/
+.venv/
+env/
+
+# Persistent Data Storage (SQLite DBs & logs)
+# MUST NOT be committed to git so updates from GitHub never overwrite live configurations!
+syslog_data/
+/data/
+*.db
+*.db-wal
+*.db-shm
+*.log
+
+# IDE & OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

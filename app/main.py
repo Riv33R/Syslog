@@ -40,6 +40,8 @@ from app.config import (
     RETENTION_DAYS,
     CLEANUP_INTERVAL_HOURS,
     DEVICES_DIR,
+    DATA_DIR,
+    get_app_timezone,
 )
 from app.storage import (
     init_registry_db,
@@ -48,6 +50,11 @@ from app.storage import (
     query_device_logs,
     query_all_devices_logs,
     cleanup_retention_worker,
+    get_all_settings,
+    get_setting,
+    update_settings,
+    export_full_backup,
+    import_full_backup,
 )
 from app.collector import (
     SyslogUdpProtocol,
@@ -252,10 +259,15 @@ class ForwardingEndpointTestRequest(BaseModel):
 @app.get("/", response_class=HTMLResponse)
 async def serve_index(request: Request):
     """Renders the main modern dark theme Single File Component dashboard."""
+    settings = await get_all_settings()
     return templates.TemplateResponse(
         request=request,
         name="index.html",
-        context={"retention_days": RETENTION_DAYS}
+        context={
+            "retention_days": settings.get("retention_days", str(RETENTION_DAYS)),
+            "timezone": settings.get("timezone", "Europe/Chisinau"),
+            "settings": settings,
+        }
     )
 
 
@@ -399,6 +411,10 @@ async def get_system_stats():
     devices = await get_all_devices()
     total_logs_stored = sum(d.get("log_count", 0) for d in devices)
     online_count = sum(1 for d in devices if d.get("is_online", False))
+    settings = await get_all_settings()
+    tz_name = settings.get("timezone", "Europe/Chisinau")
+    from datetime import datetime
+    now_in_tz = datetime.now(get_app_timezone(tz_name)).isoformat()
 
     return {
         "stats": STATS,
@@ -406,7 +422,11 @@ async def get_system_stats():
         "devices_count": len(devices),
         "devices_online": online_count,
         "total_logs_stored": total_logs_stored,
-        "retention_days": RETENTION_DAYS
+        "retention_days": int(settings.get("retention_days", RETENTION_DAYS)),
+        "timezone": tz_name,
+        "server_time": now_in_tz,
+        "storage_dir": str(DATA_DIR),
+        "settings": settings,
     }
 
 
@@ -555,6 +575,58 @@ async def test_forwarding(req: ForwardingEndpointTestRequest):
         forward_format=req.forward_format
     )
     return res
+
+
+# --- System Settings, Timezone & Disaster Recovery Backup ---
+
+class SettingsUpdateRequest(BaseModel):
+    timezone: Optional[str] = None
+    language: Optional[str] = None
+    retention_days: Optional[int] = None
+    date_format: Optional[str] = None
+    autoscroll: Optional[bool] = None
+
+
+@app.get("/api/v1/settings")
+async def get_settings():
+    """Returns persistent system settings."""
+    settings = await get_all_settings()
+    return {"settings": settings}
+
+
+@app.post("/api/v1/settings")
+async def save_settings(req: SettingsUpdateRequest):
+    """Updates persistent system settings."""
+    updates = {}
+    if req.timezone is not None:
+        updates["timezone"] = req.timezone
+    if req.language is not None:
+        updates["language"] = req.language
+    if req.retention_days is not None:
+        updates["retention_days"] = str(req.retention_days)
+    if req.date_format is not None:
+        updates["date_format"] = req.date_format
+    if req.autoscroll is not None:
+        updates["autoscroll"] = str(req.autoscroll).lower()
+
+    updated = await update_settings(updates)
+    return {"status": "ok", "settings": updated}
+
+
+@app.get("/api/v1/backup")
+async def export_backup():
+    """Exports entire aggregator configuration (settings, forwarding targets, webhooks, devices) for disaster recovery."""
+    backup_data = await export_full_backup()
+    return backup_data
+
+
+@app.post("/api/v1/restore")
+async def import_backup(data: Dict[str, Any]):
+    """Restores aggregator configuration from a JSON backup."""
+    if not isinstance(data, dict):
+        raise HTTPException(status_code=400, detail="Invalid backup payload format")
+    results = await import_full_backup(data)
+    return {"status": "restored", "summary": results}
 
 
 # --- WebSocket Live Stream ---

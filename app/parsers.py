@@ -2,6 +2,7 @@ import re
 import json
 from datetime import datetime, timezone
 from typing import Dict, Any, Optional, Tuple
+from app.config import get_app_timezone
 
 # PRI pattern: <PRI>
 PRI_REGEX = re.compile(r"^<(\d{1,3})>(.*)$", re.DOTALL)
@@ -284,7 +285,7 @@ def parse_syslog_message(raw_line: str, source_ip: str) -> Dict[str, Any]:
     3. Returns normalized dictionary ready for storage, indexing, and forwarding.
     """
     facility, default_sev, content = extract_pri(raw_line)
-    now_iso = datetime.now(timezone.utc).isoformat()
+    now_iso = datetime.now(get_app_timezone()).isoformat()
 
     # Pipeline execution
     result = parse_fortigate(content, default_sev)
